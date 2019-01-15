@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
-    bucket = "system.vevey.co"
-    key    = "infra.tfstate"
+    bucket = "pkg.vevey.co"
+    key    = "pkg.tfstate"
     region = "ap-northeast-1"
   }
 }

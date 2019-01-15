@@ -1,5 +1,5 @@
 module "user" {
   source = "./modules/user"
 
-  project = "${var.project}"
+  domain = "${var.domain}"
 }

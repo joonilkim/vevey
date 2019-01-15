@@ -5,7 +5,7 @@ provider "aws" {
 ## Bucket for SystemAdmin: terraform state, ...
 
 resource "aws_s3_bucket" "system" {
-  bucket         = "${var.project}-system"
+  bucket         = "system.${var.domain}"
   acl            = "private"
   force_destroy  = "false"
 
@@ -17,7 +17,7 @@ resource "aws_s3_bucket" "system" {
 ## Bucket for deployable packages
 
 resource "aws_s3_bucket" "pkg" {
-  bucket         = "${var.project}-pkg"
+  bucket         = "pkg.${var.domain}"
   acl            = "private"
   force_destroy  = "false"
 

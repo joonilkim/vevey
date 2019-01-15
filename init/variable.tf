@@ -1,5 +1,5 @@
-variable "project" {
-  default = "vevey"
+variable "domain" {
+  default = "vevey.co"
 }
 
 variable "region" {

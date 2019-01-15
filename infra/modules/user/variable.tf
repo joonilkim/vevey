@@ -1,3 +1,3 @@
-variable "project" {
-  default = "vevey"
+variable "domain" {
+  default = "example.co"
 }

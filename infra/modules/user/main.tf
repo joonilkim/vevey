@@ -4,8 +4,8 @@ data "aws_iam_policy" "superadmin" {
 }
 
 resource "aws_iam_group" "superadmin" {
-  name = "${var.project}-superadmin"
-  path = "/${var.project}/"
+  name = "superadmin.${var.domain}"
+  path = "/${var.domain}/"
 }
 
 resource "aws_iam_group_policy_attachment" "superadmin" {
@@ -19,8 +19,8 @@ data "aws_iam_policy" "dbadmin" {
 }
 
 resource "aws_iam_group" "dbadmin" {
-  name = "${var.project}-dbadmin"
-  path = "/${var.project}/"
+  name = "dbadmin.${var.domain}"
+  path = "/${var.domain}/"
 }
 
 resource "aws_iam_group_policy_attachment" "dbadmin" {
@@ -34,8 +34,8 @@ data "aws_iam_policy" "systemadmin" {
 }
 
 resource "aws_iam_group" "systemadmin" {
-  name = "${var.project}-systemadmin"
-  path = "/${var.project}/"
+  name = "systemadmin.${var.domain}"
+  path = "/${var.domain}/"
 }
 
 resource "aws_iam_group_policy_attachment" "systemadmin" {
@@ -45,7 +45,7 @@ resource "aws_iam_group_policy_attachment" "systemadmin" {
 
 ## Group Membership
 resource "aws_iam_group_membership" "superadmin" {
-  name = "${var.project}-superadmin"
+  name = "superadmin.${var.domain}"
   users = []
   group = "${aws_iam_group.superadmin.name}"
 }
