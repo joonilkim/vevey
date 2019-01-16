@@ -1,6 +1,7 @@
 locals {
-  target = "${path.root}/../pkg/api"
-  dist   = "dist.zip"
+  target      = "${path.root}/../pkg/api"
+  dist        = "dist.zip"
+  dist_s3_key = "api/lambda.zip"
 }
 
 ## Role
@@ -12,11 +13,7 @@ data "aws_iam_policy_document" "_" {
     principals {
       type        = "Service"
       identifiers = [
-        "apigateway.amazonaws.com",
-        "dynamodb.amazonaws.com",
         "lambda.amazonaws.com",
-        "logs.amazonaws.com",
-        "s3.amazonaws.com",
       ]
     }
   }
@@ -28,13 +25,9 @@ resource "aws_iam_role" "_" {
 }
 
 # Provides full access to Lambda, S3, DynamoDB, CloudWatch Metrics and Logs.
-data "aws_iam_policy" "_" {
-  arn = "arn:aws:iam::aws:policy/AWSLambdaFullAccess"
-}
-
 resource "aws_iam_role_policy_attachment" "_" {
   role       = "${aws_iam_role._.id}"
-  policy_arn = "${data.aws_iam_policy._.arn}"
+  policy_arn = "arn:aws:iam::aws:policy/AWSLambdaFullAccess"
 }
 
 # Upload packages
@@ -55,37 +48,43 @@ resource "null_resource" "dist_zip" {
   }
 
   provisioner "local-exec" {
-    command     = "make ${local.dist}"
+    command     = "make dist.zip"
     working_dir = "${local.target}"
   }
-}
-
-resource "aws_s3_bucket_object" "_" {
-  depends_on = ["null_resource.dist_zip"]
-
-  bucket = "${var.s3_bucket}"
-  key    = "${var.s3_key}"
-  etag   = "${data.external.githash.result["githash"]}"
-  source = "${local.target}/${local.dist}"
 }
 
 ## Lambda Function
 
 resource "aws_lambda_function" "_" {
+  depends_on = ["null_resource.dist_zip"]
+
+  filename      = "${local.target}/${local.dist}"
+
   # not allows '.' character for function name
   function_name = "${replace("api.${var.domain}",".","-")}"
   handler       = "index.handler"
   runtime       = "nodejs8.10"
   publish       = true
-
-  s3_bucket     = "${var.s3_bucket}"
-  s3_key        = "${var.s3_key}"
   role          = "${aws_iam_role._.arn}"
-
-  source_code_hash = "${data.external.githash.result["githash"]}"
 
   memory_size   = 512
   timeout       = 10
+}
+
+resource "null_resource" "deploy" {
+  triggers {
+    githash = "${data.external.githash.result["githash"]}"
+  }
+
+  provisioner "local-exec" {
+    command     = "make deploy"
+    working_dir = "${local.target}"
+
+    environment {
+      function_name = "${aws_lambda_function._.function_name}"
+      zip_file      = "fileb://${aws_lambda_function._.filename}"
+    }
+  }
 }
 
 ## API Gateway
@@ -95,7 +94,7 @@ resource "aws_api_gateway_rest_api" "_" {
   endpoint_configuration {
     types = ["REGIONAL"]
   }
-  minimum_compression_size = "800"
+  minimum_compression_size = "1000"
 }
 
 resource "aws_api_gateway_resource" "_" {
@@ -117,6 +116,8 @@ resource "aws_api_gateway_integration" "_" {
   http_method = "${aws_api_gateway_method._.http_method}"
 
   integration_http_method = "POST"
+  timeout_milliseconds    = 9000
+
   type = "AWS_PROXY"
   uri  = "${aws_lambda_function._.invoke_arn}"
 }

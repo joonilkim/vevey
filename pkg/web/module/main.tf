@@ -4,22 +4,10 @@ locals {
 
 ## Bucket
 
-data "aws_iam_policy_document" "www" {
-  statement {
-    actions   = ["s3:GetObject"]
-    resources = ["arn:aws:s3:::www.${var.domain}/*"]
-
-    principals {
-      type        = "*"
-      identifiers = ["*"]
-    }
-  }
-}
-
 resource "aws_s3_bucket" "www" {
   bucket = "www.${var.domain}"
   acl    = "private"
-  policy = "${data.aws_iam_policy_document.www.json}"
+  # policy will be set on the route module
 
   website {
     index_document = "index.html"
@@ -55,13 +43,12 @@ resource "aws_s3_bucket_object" "index" {
   bucket        = "${aws_s3_bucket.www.bucket}"
   key           = "index.html"
   source        = "${local.target}/dist/index.html"
-  etag          = "${data.external.githash.result["githash"]}"
   acl           = "private"
   cache_control = "public, max-age=0, must-revalidate"
   content_type  = "text/html"
 }
 
-resource "null_resource" "s3sync" {
+resource "null_resource" "assets" {
   depends_on = ["null_resource.dist"]
 
   triggers {

@@ -13,7 +13,3 @@ variable "stage" {
 variable "s3_bucket" {
   description = "S3 bucket to deploy"
 }
-
-variable "s3_key" {
-  description = "A package path"
-}

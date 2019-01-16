@@ -1,4 +1,4 @@
-dist.zip: $(shell find src) package.json yarn.lock
+lambda.zip: $(shell find src) package.json yarn.lock
 	rm -rf build && \
 	mkdir -p build && \
 	cp -r --parents $^ build/ &&  \
@@ -8,12 +8,11 @@ dist.zip: $(shell find src) package.json yarn.lock
 	zip -rq ../$@ * && \
 	cd .. && rm -rf build
 
-deploy: dist.zip
-	test ${domain} && \
-	aws lambda update-function-code \
-		--function-name api-$(subst .,-,${domain}) \
-		--zip-file fileb://${abspath $<}\
+deploy: $(abspath lambda.zip)
+	aws --region us-east-1 lambda update-function-code \
+		--function-name ${function_name} \
+		--zip-file fileb://$< \
 		--publish
 
 clean:
-	rm -rf build dist.zip
+	rm -rf build lambda.zip

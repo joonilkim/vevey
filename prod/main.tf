@@ -5,7 +5,6 @@ module "api" {
   region    = "${var.region}"
   stage     = "${var.stage}"
   s3_bucket = "${var.pkg_bucket}"
-  s3_key    = "api/lambda.zip"
 }
 
 module "web" {

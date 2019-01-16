@@ -1,11 +1,9 @@
 # temporal
 dist/
+dist.zip
 build/
 *.swp
 *.local
-
-# binaries
-*.zip
 
 # personal
 TODO.md
