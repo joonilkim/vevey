@@ -1,10 +1,14 @@
 {
-  "name": "linote-app",
-  "version": "0.1.0",
+  "name": "vevey-api",
+  "version": "0.0.0",
   "main": "index.js",
-  "repository": "https://github.com/joonilkim/linote",
-  "author": "jkim25d@gmail.com",
+  "repository": "https://github.com/joonilkim/vevey.git",
+  "author": {
+    "name": "Joonil Kim",
+    "email": "somewehr@gmail.com"
+  },
   "license": "MIT",
+  "private": true,
   "scripts": {
     "lint": "eslint src",
     "dev": "nodemon ./src/app.local.js --watch ./src",

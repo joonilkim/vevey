@@ -9,3 +9,11 @@ variable "region" {
 variable "stage" {
   default = "prod"
 }
+
+variable "pkg_bucket" {
+  default = "pkg.vevey.co"
+}
+
+variable "log_bucket" {
+  default = "log.vevey.co"
+}

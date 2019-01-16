@@ -25,3 +25,13 @@ resource "aws_s3_bucket" "pkg" {
     enabled = true
   }
 }
+
+resource "aws_s3_bucket" "log" {
+  bucket         = "log.${var.domain}"
+  acl            = "private"
+  force_destroy  = "false"
+
+  versioning {
+    enabled = true
+  }
+}

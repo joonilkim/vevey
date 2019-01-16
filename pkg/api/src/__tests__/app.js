@@ -13,7 +13,7 @@ afterAll(() => server.close())
 describe('lambda', () => {
   it('should return users', async () => {
     const event = makeEvent({
-      path: '/users',
+      path: '/api/users',
     })
 
     const res = await handler(event, {})

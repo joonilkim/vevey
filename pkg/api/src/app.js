@@ -63,6 +63,6 @@ const users = [{
 }]
 let userIdCounter = users.length
 
-app.use('/', router)
+app.use('/api', router)
 
 module.exports = app
