@@ -1,5 +1,6 @@
 locals {
-  dist = "${path.module}/dist.zip"
+  target = "${path.root}/../pkg/api"
+  dist   = "dist.zip"
 }
 
 ## Role
@@ -39,29 +40,33 @@ resource "aws_iam_role_policy_attachment" "_" {
 # Upload packages
 
 # Package and deploy on current git hash is changed
-module "hash" {
-  source = "matti/resource/shell"
-  command = "git log --pretty=format:'%H' -n 1 -- ."
+data "external" "githash" {
+  program = ["${path.module}/githash.sh"]
+
+  query {
+    directory = "${local.target}"
+  }
 }
 
-resource "null_resource" "build" {
+# Rebuild if githash got changed
+resource "null_resource" "dist_zip" {
   triggers {
-    hash = "${module.hash.stdout}"
+    githash = "${data.external.githash.result["githash"]}"
   }
 
   provisioner "local-exec" {
-    command     = "make clean && make ${local.dist}"
-    working_dir = "${path.module}"
+    command     = "make ${local.dist}"
+    working_dir = "${local.target}"
   }
 }
 
 resource "aws_s3_bucket_object" "_" {
+  depends_on = ["null_resource.dist_zip"]
+
   bucket = "${var.s3_bucket}"
   key    = "${var.s3_key}"
-  etag   = "${module.hash.stdout}"
-  source = "${local.dist}"
-
-  depends_on = ["null_resource.build"]
+  etag   = "${data.external.githash.result["githash"]}"
+  source = "${local.target}/${local.dist}"
 }
 
 ## Lambda Function
@@ -77,7 +82,7 @@ resource "aws_lambda_function" "_" {
   s3_key        = "${var.s3_key}"
   role          = "${aws_iam_role._.arn}"
 
-  source_code_hash = "${module.hash.stdout}"
+  source_code_hash = "${data.external.githash.result["githash"]}"
 
   memory_size   = 512
   timeout       = 10
@@ -130,6 +135,8 @@ resource "aws_lambda_permission" "_" {
 }
 
 resource "aws_api_gateway_deployment" "_" {
+  depends_on = ["aws_api_gateway_integration._"]
+
   rest_api_id = "${aws_api_gateway_rest_api._.id}"
   stage_name  = "${var.stage}"
 
@@ -145,6 +152,4 @@ resource "aws_api_gateway_deployment" "_" {
       aws_lambda_permission._.source_arn
     }"
   }
-
-  depends_on = ["aws_api_gateway_integration._"]
 }

@@ -1,5 +1,5 @@
 module "api" {
-  source = "./api"
+  source = "../pkg/api/module"
 
   domain    = "${var.domain}"
   region    = "${var.region}"

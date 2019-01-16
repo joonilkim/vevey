@@ -30,6 +30,7 @@ RUN curl -sL https://s3.amazonaws.com/aws-cli/awscli-bundle.zip \
 # Install development tools
 RUN yum -y install http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
 RUN yum -y install git
+RUN yum -y install jq
 
 RUN mkdir -p /project
 
