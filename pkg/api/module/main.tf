@@ -1,7 +1,6 @@
 locals {
   target      = "${path.root}/../pkg/api"
-  dist        = "dist.zip"
-  dist_s3_key = "api/lambda.zip"
+  dist        = "lambda.zip"
 }
 
 ## Role
@@ -30,34 +29,9 @@ resource "aws_iam_role_policy_attachment" "_" {
   policy_arn = "arn:aws:iam::aws:policy/AWSLambdaFullAccess"
 }
 
-# Upload packages
-
-# Package and deploy on current git hash is changed
-data "external" "githash" {
-  program = ["${path.module}/githash.sh"]
-
-  query {
-    directory = "${local.target}"
-  }
-}
-
-# Rebuild if githash got changed
-resource "null_resource" "dist_zip" {
-  triggers {
-    githash = "${data.external.githash.result["githash"]}"
-  }
-
-  provisioner "local-exec" {
-    command     = "make dist.zip"
-    working_dir = "${local.target}"
-  }
-}
-
 ## Lambda Function
 
 resource "aws_lambda_function" "_" {
-  depends_on = ["null_resource.dist_zip"]
-
   filename      = "${local.target}/${local.dist}"
 
   # not allows '.' character for function name
@@ -71,9 +45,10 @@ resource "aws_lambda_function" "_" {
   timeout       = 10
 }
 
+# Use deploy script cause of terraform's downtime
 resource "null_resource" "deploy" {
   triggers {
-    githash = "${data.external.githash.result["githash"]}"
+    hash = "${base64sha256(file("${local.target}/${local.dist}"))}"
   }
 
   provisioner "local-exec" {

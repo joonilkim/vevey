@@ -2,8 +2,7 @@ test:
 	mocha -r ts-node/register "spec/**/*.{ts,tsx}" --colors
 
 lambda.zip: $(shell find src) package.json yarn.lock
-	rm -rf build $@ && \
-	mkdir -p build && \
+	rm -rf build $@ && mkdir -p build && \
 	tsc && \
 	cp package.json yarn.lock build/ &&  \
 	cd build && yarn install --prod && \

@@ -1,14 +1,13 @@
 module "api" {
-  source = "../pkg/api/module"
+  source    = "../pkg/api/module"
 
   domain    = "${var.domain}"
   region    = "${var.region}"
   stage     = "${var.stage}"
-  s3_bucket = "${var.pkg_bucket}"
 }
 
 module "web" {
-  source = "../pkg/web/module"
+  source    = "../pkg/web/module"
 
   domain    = "${var.domain}"
   region    = "${var.region}"
@@ -16,7 +15,7 @@ module "web" {
 }
 
 module "route" {
-  source = "../pkg/route/module"
+  source     = "../pkg/route/module"
 
   domain     = "${var.domain}"
   region     = "${var.region}"

@@ -1,6 +1,5 @@
 # temporal
 dist/
-dist.zip
 build/
 *.swp
 *.local

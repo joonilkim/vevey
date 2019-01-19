@@ -8,5 +8,9 @@
     "email": "somewehr@gmail.com"
   },
   "license": "MIT",
-  "private": true
+  "private": true,
+  "scripts": {
+    "build": "make package"
+  }
 }
+

@@ -1,6 +1,5 @@
-dist.zip: $(shell find src) package.json yarn.lock
-	rm -rf build && \
-	mkdir -p build && \
+lambda.zip: $(shell find src) package.json yarn.lock
+	rm -rf build $@ && mkdir -p build && \
 	cp -r --parents $^ build/ &&  \
 	mv build/src/* build/ && \
 	cd build && yarn install --prod && \
@@ -8,7 +7,7 @@ dist.zip: $(shell find src) package.json yarn.lock
 	zip -rq ../$@ * && \
 	cd .. && rm -rf build
 
-deploy: dist.zip
+deploy: lambda.zip
 	test ${function_name} && \
 	aws lambda update-function-code \
 		--function-name ${function_name} \

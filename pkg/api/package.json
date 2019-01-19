@@ -12,7 +12,8 @@
   "scripts": {
     "lint": "eslint src",
     "dev": "nodemon ./src/app.local.js --watch ./src",
-    "test": "jest"
+    "test": "jest",
+    "build": "make lambda.zip"
   },
   "dependencies": {
     "aws-sdk": "^2.386.0",

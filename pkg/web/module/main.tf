@@ -1,5 +1,6 @@
 locals {
-  target = "${path.root}/../pkg/web"
+  target     = "${path.root}/../pkg/web"
+  dist_zip   = "dist.zip"
 }
 
 ## Bucket
@@ -16,19 +17,10 @@ resource "aws_s3_bucket" "www" {
 
 ## Upload
 
-# Package and deploy on current git hash is changed
-data "external" "githash" {
-  program = ["${path.module}/githash.sh"]
-
-  query {
-    directory = "${local.target}"
-  }
-}
-
-# Rebuild if githash got changed
-resource "null_resource" "dist" {
+# Unzip
+resource "null_resource" "unzip" {
   triggers {
-    githash = "${data.external.githash.result["githash"]}"
+    hash = "${base64sha256(file("${local.target}/${local.dist_zip}"))}"
   }
 
   provisioner "local-exec" {
@@ -38,7 +30,7 @@ resource "null_resource" "dist" {
 }
 
 resource "aws_s3_bucket_object" "index" {
-  depends_on = ["null_resource.dist"]
+  depends_on = ["null_resource.unzip"]
 
   bucket        = "${aws_s3_bucket.www.bucket}"
   key           = "index.html"
@@ -49,10 +41,10 @@ resource "aws_s3_bucket_object" "index" {
 }
 
 resource "null_resource" "assets" {
-  depends_on = ["null_resource.dist"]
+  depends_on = ["null_resource.unzip"]
 
   triggers {
-    githash = "${data.external.githash.result["githash"]}"
+    hash = "${base64sha256(file("${local.target}/${local.dist_zip}"))}"
   }
 
   # Sync whole directory to S3

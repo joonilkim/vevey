@@ -52,15 +52,6 @@ resource "aws_iam_role_policy_attachment" "_" {
 
 ## Upload Lambda@Edge
 
-# Package and deploy on current git hash is changed
-data "external" "githash" {
-  program = ["${path.module}/githash.sh"]
-
-  query {
-    directory = "${local.target}"
-  }
-}
-
 ## Lambda@Edge Function
 
 resource "aws_lambda_function" "_" {
@@ -212,9 +203,6 @@ resource "aws_cloudfront_distribution" "_" {
     viewer_protocol_policy = "https-only"
 
     compress    = true
-    min_ttl     = 0
-    default_ttl = 0
-    max_ttl     = 0
   }
 
   default_cache_behavior {
@@ -224,14 +212,6 @@ resource "aws_cloudfront_distribution" "_" {
 
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
-
-    # The value that you specify applies only when your origin does not add 
-    # HTTP headers such as Cache-Control max-age, Cache-Control s-maxage, 
-    # and Expires to objects
-    # @see: https://docs.aws.amazon.com/sdk-for-go/api/service/cloudfront/#CacheBehavior
-    default_ttl            = 0
-    min_ttl                = 0
-    max_ttl                = 0
 
     forwarded_values {
       query_string = false

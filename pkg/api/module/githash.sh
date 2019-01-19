@@ -1,1 +1,0 @@
-../../../share/githash.sh
