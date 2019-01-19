@@ -9,9 +9,9 @@ dist.zip: $(shell find src) package.json yarn.lock
 	cd .. && rm -rf build
 
 deploy: dist.zip
-	test ${domain} && \
+	test ${function_name} && \
 	aws lambda update-function-code \
-		--function-name api-$(subst .,-,${domain}) \
+		--function-name ${function_name} \
 		--zip-file fileb://${abspath $<}\
 		--publish
 

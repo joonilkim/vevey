@@ -1,0 +1,48 @@
+{
+  "name": "vevey",
+  "version": "0.0.0",
+  "repository": "https://github.com/joonilkim/vevey.git",
+  "author": {
+    "name": "Joonil Kim",
+    "email": "somewehr@gmail.com"
+  },
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "test:api": "cd pkg/route && yarn run test",
+    "test": "yarn run test:api"
+  },
+  "engines": {
+    "node": ">=8.0.0 <9.0.0"
+  },
+  "workspaces": [
+    "pkg/*"
+  ],
+  "// 1": "Put language specific dependencies here",
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.17",
+    "@types/dotenv": "^6.1.0",
+    "@types/mocha": "^5.2.5",
+    "@types/node": "^10.12.18",
+    "dotenv": "^6.2.0",
+    "mocha": "^5.2.0",
+    "tslint": "^5.12.1",
+    "typescript": "^3.3.0-dev.20190118"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged && yarn run test"
+    }
+  },
+  "lint-staged": {
+    "*.js": [
+      "tslint --fix",
+      "git add"
+    ]
+  },
+  "dependencies": {
+    "@types/chai": "^4.1.7",
+    "chai": "^4.2.0",
+    "ts-node": "^7.0.1"
+  }
+}

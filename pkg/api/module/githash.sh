@@ -1,1 +1,1 @@
-../../settings/githash.sh
+../../../share/githash.sh

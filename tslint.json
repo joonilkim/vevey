@@ -1,0 +1,23 @@
+{
+  "rules": {
+    "max-line-length": [
+      true,
+      {"limit": 80, "ignore-pattern": "^import |^export {(.*?)} | @see"}
+    ],
+    "no-console": [true, "log"],
+    "no-debugger": true,
+    "no-duplicate-imports": true,
+    "no-duplicate-variable": true,
+    "no-inner-declarations": [true, "function"],
+    "no-jasmine-focus": true,
+    "no-trailing-whitespace": true,
+    "no-var-keyword": true,
+    "require-internal-with-underscore": true,
+    "rollup-config": true,
+    "trailing-comma": [
+      true,
+      {"multiline": "always", "singleline": "never"}
+    ],
+    "variable-name": [true, "ban-keywords"]
+  }
+}
