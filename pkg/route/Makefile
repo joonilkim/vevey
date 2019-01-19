@@ -1,9 +1,9 @@
 test:
-	mocha -r ts-node/register "spec/**/*.{ts,tsx}" --colors
+	mocha -r ts-node/register "src/**/*.spec.{ts,tsx}" --colors
 
 lambda.zip: $(shell find src) package.json yarn.lock
 	rm -rf build $@ && mkdir -p build && \
-	tsc && \
+	tsc -p tsconfig.build.json && \
 	cp package.json yarn.lock build/ &&  \
 	cd build && yarn install --prod && \
 	rm -rf yarn.lock node_modules/aws-sdk && \
