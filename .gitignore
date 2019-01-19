@@ -1,8 +1,11 @@
 # temporal
 dist/
 build/
-*.swp
 *.local
+
+# editor
+*.swp
+tags
 
 # personal
 TODO.md

@@ -67,6 +67,12 @@ resource "aws_lambda_function" "_" {
   memory_size   = 512
   timeout       = 3
 
+  environment {
+    variables = {
+      NODE_ENV = "production"
+    }
+  }
+
   # Lambda@Edge function must be located in us-east-1
   provider      = "aws.virginia"
 }

@@ -26,6 +26,7 @@
     "@types/node": "^10.12.18",
     "dotenv": "^6.2.0",
     "mocha": "^5.2.0",
+    "nodemon": "^1.18.9",
     "tslint": "^5.12.1",
     "typescript": "^3.3.0-dev.20190118"
   },
