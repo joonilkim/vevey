@@ -6,7 +6,7 @@
     "name": "Joonil Kim",
     "email": "somewehr@gmail.com"
   },
-  "license": "MIT",
+  "license": "GPL-3.0",
   "private": true,
   "scripts": {
     "test:api": "cd pkg/route && yarn run test",

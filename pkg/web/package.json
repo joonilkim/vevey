@@ -7,7 +7,7 @@
     "name": "Joonil Kim",
     "email": "somewehr@gmail.com"
   },
-  "license": "MIT",
+  "license": "GPL-3.0",
   "private": true,
   "scripts": {
     "build": "make package"
