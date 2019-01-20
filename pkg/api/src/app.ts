@@ -1,9 +1,14 @@
-import * as express from 'express'
-import * as bodyParser from 'body-parser'
-import * as graphql from 'express-graphql'
-import * as pinoLogger from 'pino-http'
 import * as serverless from 'aws-serverless-express/middleware'
-import { makeExecutableSchema } from 'graphql-tools'
+import * as bodyParser from 'body-parser'
+import * as express from 'express'
+import * as graphql from 'express-graphql'
+import {
+  GraphQLString,
+  GraphQLObjectType,
+} from 'graphql'
+import * as pinoLogger from 'pino-http'
+
+import schema from './schema'
 
 const app = express()
 app.disable('x-powered-by')
@@ -16,24 +21,6 @@ app.use(bodyParser.urlencoded({ extended: true }))
 app.use(serverless.eventContext())
 
 const router = express.Router()
-
-const typeDefs = `
-  type Query {
-    echo(msg: String!): String
-  }
-`
-
-const resolvers = {
-  Query: {
-    // @see: https://www.apollographql.com/docs/graphql-tools/resolvers.html
-    echo: (_, { msg }) => msg
-  }
-}
-
-const schema = makeExecutableSchema({
-  typeDefs,
-  resolvers,
-})
 
 router.use('/gql', graphql({
   schema,

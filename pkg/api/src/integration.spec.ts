@@ -78,14 +78,13 @@ describe('integraion', () => {
 
   describe('graphql', () => {
 
-    it('echo request', async () => {
-      const msg = 'hello'
-      const query = `{ echo(message: "${msg}") }`
+    it('should success ping', async () => {
+      const query = `{ ping }`
 
       const res = await gqlRequest(query)
 
       expect(res).to.have.property('statusCode', 200)
-      expect(res.data.user).to.have.property('body', 200)
+      expect(res.data).to.have.property('ping', 'ok')
     })
 
   })
