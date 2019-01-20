@@ -7,13 +7,21 @@ import {
   GraphQLObjectType,
 } from 'graphql'
 import * as pinoLogger from 'pino-http'
+import { omitBy } from 'lodash'
 
 import schema from './schema'
 
 const app = express()
 app.disable('x-powered-by')
 app.use(pinoLogger({
-  prettyPrint: { colorize: true }
+  prettyPrint: { colorize: true },
+  serializers: {
+    req: req => {
+      req.headers = omitBy(
+        req.headers, (_, k) => /cloudfront|apigateway/.test(k))
+      return req
+    },
+  },
 }))
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
