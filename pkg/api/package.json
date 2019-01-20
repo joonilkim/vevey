@@ -22,12 +22,17 @@
     "express-graphql": "^0.6.0",
     "graphql": "^0.13.0",
     "graphql-tools": "^4.0.3",
-    "lodash": "^4.17.11"
+    "lodash": "^4.17.11",
+    "pino": "^5.10.8",
+    "pino-http": "^4.1.0"
   },
   "devDependencies": {
     "@types/aws-serverless-express": "^3.3.0",
     "@types/express-graphql": "^0.6.2",
     "@types/graphql": "^14.0.5",
-    "aws-sdk": "^2.386.0"
+    "@types/pino": "^5.8.3",
+    "@types/pino-http": "^4.0.0",
+    "aws-sdk": "^2.386.0",
+    "pino-pretty": "^2.5.0"
   }
 }

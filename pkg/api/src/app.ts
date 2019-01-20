@@ -1,18 +1,21 @@
 import * as express from 'express'
 import * as bodyParser from 'body-parser'
-import * as serverless from 'aws-serverless-express/middleware'
 import * as graphql from 'express-graphql'
+import * as pinoLogger from 'pino-http'
+import * as serverless from 'aws-serverless-express/middleware'
 import { makeExecutableSchema } from 'graphql-tools'
 
 const app = express()
 app.disable('x-powered-by')
+app.use(pinoLogger({
+  prettyPrint: { colorize: true }
+}))
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }))
+// get event object by `req.apiGateway.event`
+app.use(serverless.eventContext())
 
 const router = express.Router()
-
-router.use(bodyParser.json())
-router.use(bodyParser.urlencoded({ extended: true }))
-// get event object by `req.apiGateway.event`
-router.use(serverless.eventContext())
 
 const typeDefs = `
   type Query {
