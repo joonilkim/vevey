@@ -28,7 +28,6 @@
     "@types/aws-serverless-express": "^3.3.0",
     "@types/express-graphql": "^0.6.2",
     "@types/graphql": "^14.0.5",
-    "aws-sdk": "^2.386.0",
-    "supertest": "^3.4.1"
+    "aws-sdk": "^2.386.0"
   }
 }

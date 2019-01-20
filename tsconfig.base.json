@@ -7,6 +7,8 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "sourceMap": false,
-    "strict": true
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "strictNullChecks": true
   }
 }

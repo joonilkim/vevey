@@ -5,21 +5,25 @@ import * as graphql from 'express-graphql'
 import { makeExecutableSchema } from 'graphql-tools'
 
 const app = express()
+app.disable('x-powered-by')
+
 const router = express.Router()
 
 router.use(bodyParser.json())
 router.use(bodyParser.urlencoded({ extended: true }))
+// get event object by `req.apiGateway.event`
 router.use(serverless.eventContext())
 
 const typeDefs = `
   type Query {
-    hello: String
+    echo(msg: String!): String
   }
 `
 
 const resolvers = {
   Query: {
-    hello: () => 'Hello World'
+    // @see: https://www.apollographql.com/docs/graphql-tools/resolvers.html
+    echo: (_, { msg }) => msg
   }
 }
 
