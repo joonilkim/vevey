@@ -43,6 +43,12 @@ resource "aws_lambda_function" "_" {
 
   memory_size   = 512
   timeout       = 10
+
+  environment {
+    variables = {
+      NODE_ENV = "production"
+    }
+  }
 }
 
 # Use deploy script cause of terraform's downtime

@@ -19,10 +19,15 @@
     "aws-serverless-express": "^3.3.5",
     "body-parser": "^1.17.0",
     "express": "^4.16.4",
+    "express-graphql": "0.6",
+    "graphql": "0.13",
+    "graphql-tools": "^4.0.3",
     "lodash": "^4.17.11"
   },
   "devDependencies": {
     "@types/aws-serverless-express": "^3.3.0",
+    "@types/express-graphql": "^0.6.2",
+    "@types/graphql": "^14.0.5",
     "aws-sdk": "^2.386.0"
   }
 }

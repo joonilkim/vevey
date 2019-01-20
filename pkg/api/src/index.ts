@@ -6,7 +6,7 @@ import {
   Context,
 } from 'aws-lambda'
 
-import { app } from './app'
+import app from './app'
 
 const server = awsServerlessExpress.createServer(app)
 
