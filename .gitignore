@@ -1,4 +1,5 @@
 # temporal
+shared/
 dist/
 build/
 *.local

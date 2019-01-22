@@ -2,8 +2,8 @@ import * as AWS from 'aws-sdk'
 import * as express from 'express'
 import * as graphql from 'express-graphql'
 import { formatError } from 'graphql'
-import { pick } from 'lodash'
-import * as pino from 'pino'
+import { omitBy, pick } from 'lodash'
+import * as pinoLogger from 'pino-http'
 
 import { Context } from './context'
 import schema from './schema'
@@ -11,17 +11,33 @@ import schema from './schema'
 export default function({ env }) {
   const router = express.Router()
 
-  const db = new AWS.DynamoDB({apiVersion: '2012-10-08'})
+  const db = new AWS.DynamoDB.DocumentClient({
+    apiVersion: '2012-10-08',
+  })
+
+
+  //// logger ////
+
+  const serializers = {
+    req(req){
+      req.headers = omitBy(
+        req.headers, (_, k) => /cloudfront|apigateway/.test(k))
+      return req
+    }
+  }
+
+  router.use(pinoLogger({
+    prettyPrint: { colorize: true },
+    serializers,
+    level: env === 'test' ? 'error' : 'info'
+  }))
+
 
   //// grapql ////
 
   router.use('/gql', function(req, res, next){
-    const logger = pino({
-      prettyPrint: { colorize: true },
-    })
-
     if(env !== 'production'){
-      logger.debug(pick(req, ['path', 'query', 'body']))
+      req.log.debug(pick(req, ['path', 'query', 'body']))
     }
 
     const user = {}
@@ -31,7 +47,7 @@ export default function({ env }) {
       graphiql: env === 'development',
       context: new Context({ env, user }, {}),
       formatError(err){
-        logger.error({ err })
+        req.log.error({ err })
         return formatError(err)
       },
     })(req, res)
