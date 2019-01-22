@@ -39,7 +39,6 @@ const gqlRequest = async function(
   })
 
   const res = await handler(event)
-  console.log(res.body)
   return {
     ...res,
     data: (JSON.parse(res.body) || {})['data'],
@@ -59,7 +58,7 @@ const handler = (
 
 describe('integraion', () => {
 
-  after(() => {console.log('close'); server.close()})
+  after(function(){ server.close() })
 
   describe('rest', () => {
 

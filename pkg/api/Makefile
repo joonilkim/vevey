@@ -1,4 +1,5 @@
 test:
+	NODE_ENV=test \
 	mocha -r ts-node/register "src/**/*.spec.{ts,tsx}" --colors
 
 lambda.zip: $(shell find src) package.json yarn.lock

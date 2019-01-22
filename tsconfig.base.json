@@ -5,6 +5,11 @@
     "lib": ["es2017"],
     "module": "commonjs",
     "moduleResolution": "node",
+    "paths": {
+      "*": [
+        "src/types"
+      ]
+    },
     "resolveJsonModule": true,
     "sourceMap": false,
     "strictBindCallApply": true,
