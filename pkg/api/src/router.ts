@@ -4,23 +4,14 @@ import { formatError } from 'graphql'
 import { omitBy, pick } from 'lodash'
 import * as pinoLogger from 'pino-http'
 
-import { DynamoDB } from './connectors/dynamodb'
 import { schema } from './graphql'
 import { Note } from './models/Note'
-import { Context } from './Context'
 
 
 export default function() {
   const env = process.env.NODE_ENV || 'development'
 
   const router = express.Router()
-
-  const ddb = process.env.DYNAMODB_ENDPOINT ?
-    new DynamoDB({
-      region: 'localhost',
-      endpoint: process.env.DYNAMODB_ENDPOINT,
-    }) :
-    new DynamoDB()
 
   //// logger ////
 
@@ -44,7 +35,7 @@ export default function() {
   //// Models ////
 
   const models = {
-    Note: new Note(ddb),
+    Note,
   }
 
   //// Authentication ////
@@ -65,7 +56,7 @@ export default function() {
     }
 
     // Create per every request
-    const context: Context = {
+    const context = {
       me: req['user'],
       ...models,
     }

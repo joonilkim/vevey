@@ -1,8 +1,7 @@
-import { readFileSync } from 'fs'
-import * as path from 'path'
 import * as ConstraintDirective from 'graphql-constraint-directive'
 import { makeExecutableSchema } from 'graphql-tools'
 import { userNotes } from './userNotes'
+import { schema as typeDefs } from './schema.gql'
 
 
 export const resolvers = {
@@ -11,9 +10,6 @@ export const resolvers = {
     userNotes,
   }
 }
-
-export const typeDefs = readFileSync(
-  path.join(__dirname, './schema.gql'), 'utf8')
 
 export const schema = makeExecutableSchema({
   typeDefs,

@@ -1,8 +1,20 @@
-import { Context } from '../Context'
+import {
+  shouldBeOwner,
+} from './permissions'
 
-export const userNotes = (
+export function userNotes(
   _,
   { userId, limit, pos },
-  { me, Note }: Context,
-) =>
-  Note.listByUser(me, userId, limit, pos)
+  { me, Note },
+) {
+  shouldBeOwner(me['id'], userId)
+
+  return Note
+    .query('userId')
+    .eq(userId)
+    .where('pos')
+    .lt(pos)
+    .limit(limit)
+    .descending()
+    .exec()
+}

@@ -1,36 +1,37 @@
-import { Forbidden } from 'http-errors'
-import { DynamoDB } from '../connectors/dynamodb'
+import dynamoose from '../connectors/dynamoose'
+import { DYNAMODB_MAX_INT } from '../constants'
 
-interface Obj { [_: string]: any }
-
-type Item = Obj
-
-const prefix = () => process.env.DYNAMODB_PREFIX || ''
-
-export class Note {
-  constructor(protected db: DynamoDB){}
-
-  listByUser(
-    me: { id },
-    userId: string,
-    limit: number,
-    pos?: number,
-  ): Promise<Item[]> {
-
-    if(me.id !== userId)
-      throw new Forbidden()
-
-    return this.db.query({
-      TableName: prefix() + 'Notes',
-      IndexName: 'byUser',
-      KeyConditionExpression: 'userId = :userId and pos < :pos',
-      ExpressionAttributeValues: {
-        ':userId': userId,
-        ':pos': pos == null ? Number.MAX_SAFE_INTEGER : pos,
-      },
-      ScanIndexForward: false,
-    })
+export const NoteSchema = new dynamoose.Schema({
+  id: {
+    type: String,
+    hashKey: true,
+  },
+  userId: {
+    type: String,
+    required: true,
+    index: {
+      global: true,
+      rangeKey: 'pos',
+      name: 'byUser',
+      project: true,
+      throughput: 1,
+    }
+  },
+  contents: {
+    type: String,
+    default: '',
+    trim: true,
+  },
+  pos: {
+    type: Number,
+    default: DYNAMODB_MAX_INT,
+    validate: _ => _ >= 0
   }
+}, {
+  //throughput: 'ON_DEMAND',
+  throughput: {read: 1, write: 1},
+  timestamps: true,
+  saveUnknown: false,
+})
 
-  create(){}
-}
+export const Note = dynamoose.model('Notes', NoteSchema)
