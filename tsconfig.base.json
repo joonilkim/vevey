@@ -10,10 +10,7 @@
         "src/types"
       ]
     },
-    "resolveJsonModule": true,
-    "sourceMap": false,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
-    "strictNullChecks": true
+    "noUnusedLocals": true,
+    "resolveJsonModule": true
   }
 }

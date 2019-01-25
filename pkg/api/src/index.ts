@@ -1,6 +1,5 @@
 import * as awsServerlessExpress from 'aws-serverless-express'
 import {
-  APIGatewayProxyHandler,
   APIGatewayProxyEvent,
   APIGatewayProxyResult,
   Context,
@@ -8,15 +7,11 @@ import {
 
 import app from './app'
 
-const server = awsServerlessExpress.createServer(app)
+export const server = awsServerlessExpress.createServer(app)
 
-let handler = function(
+export const handler = function(
   event: APIGatewayProxyEvent, context: Context
 ): Promise<APIGatewayProxyResult> {
   return awsServerlessExpress.proxy(
     server, event, context, 'PROMISE').promise
-}
-
-export {
-  handler
 }

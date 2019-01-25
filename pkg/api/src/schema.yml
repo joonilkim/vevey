@@ -1,0 +1,27 @@
+Notes:
+  TableName: Notes
+  AttributeDefinitions:
+    - AttributeName: id
+      AttributeType: S
+    - AttributeName: userId
+      AttributeType: S
+    - AttributeName: pos
+      AttributeType: N
+  KeySchema:
+    - AttributeName: id
+      KeyType: HASH
+  GlobalSecondaryIndexes:
+    - IndexName: byUser
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: pos
+          KeyType: RANGE
+      Projection:
+        ProjectionType: ALL
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+  ProvisionedThroughput:
+    ReadCapacityUnits: 1
+    WriteCapacityUnits: 1

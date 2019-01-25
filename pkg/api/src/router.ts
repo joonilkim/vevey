@@ -1,52 +1,83 @@
-import * as AWS from 'aws-sdk'
 import * as express from 'express'
 import * as graphql from 'express-graphql'
 import { formatError } from 'graphql'
 import { omitBy, pick } from 'lodash'
 import * as pinoLogger from 'pino-http'
 
-import { Context } from './context'
-import schema from './schema'
+import { DynamoDB } from './connectors/dynamodb'
+import { schema } from './graphql'
+import { Note } from './models/Note'
+import { Context } from './Context'
 
-export default function({ env }) {
+
+export default function() {
+  const env = process.env.NODE_ENV || 'development'
+
   const router = express.Router()
 
-  const db = new AWS.DynamoDB.DocumentClient({
-    apiVersion: '2012-10-08',
-  })
-
+  const ddb = process.env.DYNAMODB_ENDPOINT ?
+    new DynamoDB({
+      region: 'localhost',
+      endpoint: process.env.DYNAMODB_ENDPOINT,
+    }) :
+    new DynamoDB()
 
   //// logger ////
 
   const serializers = {
-    req(req){
+    req(req: express.Request){
       req.headers = omitBy(
-        req.headers, (_, k) => /cloudfront|apigateway/.test(k))
+        req.headers,
+        (_, k: string) => /cloudfront|apigateway/.test(k))
       return req
-    }
+    },
   }
 
-  router.use(pinoLogger({
-    prettyPrint: { colorize: true },
-    serializers,
-    level: env === 'test' ? 'error' : 'info'
-  }))
+  router.use(
+    pinoLogger({
+      prettyPrint: { colorize: true },
+      serializers,
+      level: env === 'test' ? 'error' : 'info',
+    }),
+  )
+
+  //// Models ////
+
+  const models = {
+    Note: new Note(ddb),
+  }
+
+  //// Authentication ////
+
+  router.use((req, res, next) => {
+    const id = req.get('Authorization')
+    req['user'] = { id }
+    next()
+  })
 
 
   //// grapql ////
 
   router.use('/gql', function(req, res, next){
     if(env !== 'production'){
-      req.log.debug(pick(req, ['path', 'query', 'body']))
+      req.log.debug(
+        pick(req, ['path', 'query', 'body']))
     }
 
-    const user = {}
+    // Create per every request
+    const context: Context = {
+      me: req['user'],
+      ...models,
+    }
 
     return graphql({
       schema,
       graphiql: env === 'development',
-      context: new Context({ env, user }, {}),
+      context,
       formatError(err){
+        // When error is occured, graphql composes its response, instead of
+        // forwarding errors to last.
+        // So, log errors in here.
         req.log.error({ err })
         return formatError(err)
       },
@@ -57,16 +88,10 @@ export default function({ env }) {
 
   //// rest api ////
 
-  const users = [{
-    id: 1,
-    name: 'Joe',
-  }, {
-    id: 2,
-    name: 'Jane',
-  }]
-
   router.get('/users', (_, res) => {
-    res.json(users)
+    res.json([
+      {id: 1, name: 'Joe'},
+    ])
   })
 
   return router

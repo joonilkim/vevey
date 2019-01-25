@@ -1,0 +1,14 @@
+type Query {
+  ping: String!
+  userNotes(
+    userId: ID!
+    limit: Int!
+    pos: Int
+  ): [Note!]!
+}
+
+type Note {
+  id: ID!,
+  userId: ID!,
+  pos: Int!
+}

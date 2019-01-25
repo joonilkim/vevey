@@ -1,70 +1,104 @@
+import { readFileSync } from 'fs'
+import * as path from 'path'
 import { expect } from 'chai'
-import { DynamoDB } from 'aws-sdk'
-import { DynamoDBConnector } from './dynamodb'
-import * as schema from './schema.spec'
-import { PromiseAll } from '../utils'
+import { pick } from 'lodash'
+import * as yaml from 'js-yaml'
+import { DynamoDB } from './dynamodb.local'
 
+const schema = yaml.safeLoad(
+  readFileSync(path.join(__dirname, 'schema.spec.yml'), 'utf8'))
 
-const config = {
-  apiVersion: '2012-10-08',
-  region: 'test-region',
-  endpoint: process.env.DYNAMODB_ENDPOINT || 'http://dynamodb:8000',
-}
+describe('dynamodb', () => {
+  const testTable = '__Test'
+  const db = new DynamoDB()
 
-const ddb = new DynamoDB(config)
+  beforeEach(() => db.createTable(schema))
+  afterEach(() => db.dropTable({ TableName: testTable }))
 
-const ddbClient = new DynamoDB.DocumentClient(config)
+  it('should get data', async () => {
+    const TableName = testTable
 
+    const seed = { id: 'n1', userId: 'u1', pos: 1 }
 
-describe('connector', () => {
-
-  describe('dynamodb', () => {
-    beforeEach(() => {
-      return PromiseAll<any>(
-        Object.values(schema).map(tab => (
-          ddb.createTable(tab).promise()
-        ))
-      )
+    await db.put({
+      TableName,
+      Item: seed
     })
 
-    afterEach(() => {
-      return PromiseAll<any>(
-        Object.values(schema).map(tab => (
-          ddb.deleteTable({TableName: tab.TableName}).promise()
-        ))
-      )
+    const res = await db.get({
+      TableName,
+      Key: { id: seed.id }
     })
 
-    it('should get notes', async () => {
-      const connector = new DynamoDBConnector(ddbClient)
-
-      const seed = { id: 'n1', user_id: 'u1', pos: 1 }
-
-      await connector.notes.put(seed)
-
-      const res = await connector.notes.get(seed.id)
-
-      for(const [k, v] of Object.entries(seed)){
-        expect(res).to.have.property(k, seed[k])
-      }
-    })
-
-    it('should get notes by batch', async () => {
-      const connector = new DynamoDBConnector(ddbClient)
-
-      const seeds = [
-        { id: 'n1', user_id: 'u1', pos: 1 }
-      ]
-
-      await connector.notes.batchPut(seeds)
-
-      const res = await connector.notes.batchGet(seeds.map(x => x.id))
-
-      expect(res).to.have.length(seeds.length)
-      for(const [k, v] of Object.entries(seeds[0])){
-        expect(res[0]).to.have.property(k, seeds[0][k])
-      }
-    })
-
+    for(const [k, v] of Object.entries(seed)){
+      expect(res).to.have.property(k, v)
+    }
   })
+
+  it('should get by batch', async () => {
+    const TableName = testTable
+
+    const seeds = [
+      { id: 'n1', userId: 'u1', pos: 1 },
+    ]
+
+    await db.putAll({
+      TableName,
+      Items: seeds,
+    })
+
+    const res = await db.getAll({
+      TableName,
+      Keys: seeds.map(x => pick(x, ['id']))
+    })
+
+    expect(res).to.have.length(seeds.length)
+    for(const [k, v] of Object.entries(seeds[0])){
+      expect(res[0]).to.have.property(k, v)
+    }
+  })
+
+  it('should run query', async () => {
+    const TableName = testTable
+    const IndexName = 'byUser'
+
+    const userId = 'u1'
+    const seeds = [
+      { id: 'n3', userId, pos: 3 },
+      { id: 'n2', userId, pos: 2 },
+      { id: 'n1', userId, pos: 1 },
+    ]
+
+    await db.putAll({
+      TableName,
+      Items: seeds,
+    })
+
+    const query = (userId, pos, Limit) =>
+      db.query({
+        TableName,
+        IndexName,
+        KeyConditionExpression: `
+          userId = :userId and pos < :pos
+        `,
+        ExpressionAttributeValues: {
+          ':userId': userId,
+          ':pos': pos == null ? Number.MAX_SAFE_INTEGER : pos,
+        },
+        ScanIndexForward: false,
+        Limit,
+      })
+
+    const limit = 2
+    const res = await query(userId, null, limit)
+    expect(res).to.be.length(limit)
+
+    for(const [k, v] of Object.entries(seeds[0])){
+      expect(res[0]).to.have.property(k, v)
+    }
+
+    const more = await query(userId, limit, res[res.length - 1].pos)
+    expect(more).to.be.length(seeds.length - limit)
+  })
+
 })
