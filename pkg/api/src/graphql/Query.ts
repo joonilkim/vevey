@@ -1,9 +1,8 @@
 import { Forbidden } from 'http-errors'
 import * as assert from 'assert-err'
 import { Context } from '../Context'
-import { createUUID } from '../utils'
 
-export function userNotes(
+function userNotes(
   _,
   { userId, limit, pos },
   { me, Note }: Context,
@@ -20,18 +19,20 @@ export function userNotes(
     .exec()
 }
 
+export const schema = `
+  type Query {
+    ping: String!
+    userNotes(
+      userId: ID!
+      pos: Integer = ${Number.MAX_SAFE_INTEGER}
+      limit: Int!
+    ): [Note!]!
+  }
+`
 
-export function createNote(
-  _,
-  { contents },
-  { me, Note }: Context,
-) {
-  assert(!!me.id, Forbidden)
-
-  return Note.create({
-    id: createUUID(),
-    userId: me.id,
-    contents,
-    pos: new Date().getTime(),
-  })
+export const resolvers = {
+  Query: {
+    ping: () => 'ok',
+    userNotes,
+  }
 }
