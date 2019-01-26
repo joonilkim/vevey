@@ -1,5 +1,4 @@
 import dynamoose from '../connectors/dynamoose'
-import { DYNAMODB_MAX_INT } from '../constants'
 
 export const NoteSchema = new dynamoose.Schema({
   id: {
@@ -24,11 +23,10 @@ export const NoteSchema = new dynamoose.Schema({
   },
   pos: {
     type: Number,
-    default: DYNAMODB_MAX_INT,
+    default: Number.MAX_SAFE_INTEGER,
     validate: _ => _ >= 0
   }
 }, {
-  //throughput: 'ON_DEMAND',
   throughput: {read: 1, write: 1},
   timestamps: true,
   saveUnknown: false,

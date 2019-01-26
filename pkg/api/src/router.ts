@@ -6,6 +6,7 @@ import * as pinoLogger from 'pino-http'
 
 import { schema } from './graphql'
 import { Note } from './models/Note'
+import { Context } from './Context'
 
 
 export default function() {
@@ -34,10 +35,6 @@ export default function() {
 
   //// Models ////
 
-  const models = {
-    Note,
-  }
-
   //// Authentication ////
 
   router.use((req, res, next) => {
@@ -56,9 +53,9 @@ export default function() {
     }
 
     // Create per every request
-    const context = {
+    const context: Context = {
       me: req['user'],
-      ...models,
+      Note,
     }
 
     return graphql({

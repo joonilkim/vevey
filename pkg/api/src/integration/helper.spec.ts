@@ -33,7 +33,8 @@ export const dropTables = tableNames => {
       .map(drop))
 }
 
-export const shouldBeOk = res => {
+export const throwIfError = res => {
   if(res.body.errors)
     throw new Error(res.body.errors[0].message)
+  return res
 }

@@ -1,4 +1,7 @@
+import * as short from 'short-uuid'
 import * as fs from 'fs'
+
+export const createUUID = short.generate
 
 export function PromiseAll<T>(promises: Promise<T>[]): Promise<T[]>{
   return Promise.all<T>(

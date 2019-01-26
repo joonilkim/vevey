@@ -1,18 +1,28 @@
-import { DYNAMODB_MAX_INT } from '../constants'
-
 export const schema = `
+scalar BigInt
+scalar DateTime
+
 type Query {
   ping: String!
   userNotes(
     userId: ID!
+    pos: BigInt = ${Number.MAX_SAFE_INTEGER}
     limit: Int!
-    pos: Int = ${DYNAMODB_MAX_INT}
   ): [Note!]!
+}
+
+type Mutation {
+  createNote(
+    contents: String!
+  ): Note
 }
 
 type Note {
   id: ID!,
   userId: ID!,
-  pos: Int!
+  contents: String!
+  pos: BigInt!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 `

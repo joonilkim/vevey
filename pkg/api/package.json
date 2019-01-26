@@ -16,6 +16,7 @@
     "build": "make lambda.zip"
   },
   "dependencies": {
+    "assert-err": "^1.1.0",
     "aws-serverless-express": "^3.3.5",
     "body-parser": "^1.17.0",
     "dataloader": "^1.4.0",
@@ -29,7 +30,8 @@
     "js-yaml": "^3.12.1",
     "lodash": "^4.17.11",
     "pino": "^5.10.8",
-    "pino-http": "^4.1.0"
+    "pino-http": "^4.1.0",
+    "short-uuid": "^3.1.0"
   },
   "devDependencies": {
     "@types/aws-serverless-express": "^3.3.0",
