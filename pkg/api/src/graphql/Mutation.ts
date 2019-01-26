@@ -1,5 +1,6 @@
 import { Forbidden } from 'http-errors'
 import * as assert from 'assert-err'
+import { pickBy, identity } from 'lodash'
 import { Context } from '../Context'
 import { createUUID } from '../utils'
 
@@ -18,10 +19,33 @@ function createNote(
   })
 }
 
+function updateNote(
+  _,
+  { id, contents, pos },
+  { me, Note }: Context,
+) {
+  assert(!!me.id, Forbidden)
+
+  const key = { id }
+  const toUpdate = pickBy({ contents, pos }, identity)
+  const condition = {
+    condition: 'userId = :userId',
+    conditionValues: { userId: me.id },
+  }
+
+  // @ts-ignore
+  return Note.update(key, toUpdate, condition)
+}
+
 export const schema = `
   type Mutation {
     createNote(
       contents: String!
+    ): Note
+    updateNote(
+      id: ID!
+      contents: String!
+      pos: Integer
     ): Note
   }
 `
@@ -29,6 +53,7 @@ export const schema = `
 export const resolvers = {
   Mutation: {
     createNote,
+    updateNote,
   }
 }
 

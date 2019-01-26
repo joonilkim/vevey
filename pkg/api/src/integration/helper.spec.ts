@@ -9,7 +9,11 @@ export const randStr = () =>
 export const randInt = (max=10000, min=0) =>
   Math.floor(Math.random() * (max - min)) + min
 
-export const request = app => _request(app).post('/api/gql')
+export const request = app =>
+  _request(app)
+    .post('/api/gql')
+    .set('x-apigateway-event', '{}')
+    .set('x-apigateway-context', '{}')
 
 export const dropTables = tableNames => {
   const db = dynamoose.ddb()

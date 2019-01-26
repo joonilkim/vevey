@@ -10,8 +10,9 @@ import {
 } from './helper.spec'
 
 const NoteFields = [
-  'id', 'userId', 'contents',
-  'pos', 'createdAt', 'updatedAt'
+  'id', 'userId',
+  'contents', 'pos',
+  'createdAt', 'updatedAt',
 ]
 
 const seeding = userId => {
@@ -31,7 +32,9 @@ const seeding = userId => {
 describe('userNotes', () => {
   beforeEach(() => dropTables([Note['$__']['name']]))
 
-  it('should create', async () => {
+  it('should create and update', async () => {
+    const userId = randStr()
+
     const query = `mutation {
       createNote(
         contents: "${randStr()}"
@@ -40,19 +43,50 @@ describe('userNotes', () => {
       }
     }`
 
-    const userId = randStr()
-
-    const data = await request(app)
+    const created = await request(app)
       .set({ Authorization: userId })
       .send({ query })
       .then(throwIfError)
-      .then(r => r.body.data)
+      .then(r => r.body.data.createNote)
 
     NoteFields.forEach(f =>
-      expect(data.createNote)
+      expect(created)
         .to.have.property(f)
         .to.be.exist
     )
+
+    const toUpdate = {
+      contents: randStr(),
+      pos: new Date().getTime(),
+    }
+
+    const updateQuery = `mutation {
+      updateNote(
+        id: "${created.id}"
+        contents: "${toUpdate.contents}"
+        pos: ${toUpdate.pos}
+      ) {
+        ${NoteFields.join(', ')}
+      }
+    }`
+
+    const updated = await request(app)
+      .set({ Authorization: userId })
+      .send({ query: updateQuery })
+      .then(throwIfError)
+      .then(r => r.body.data.updateNote)
+
+    NoteFields.forEach(f =>
+      expect(updated)
+        .to.have.property(f)
+        .to.be.exist
+    )
+    expect(updated.contents)
+      .to.be.equal(toUpdate.contents)
+    expect(updated.pos)
+      .to.be.equal(toUpdate.pos)
+    expect(new Date(updated.updatedAt))
+      .to.be.above(new Date(created.updatedAt))
   })
 
   it('should get list', async () => {
