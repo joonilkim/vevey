@@ -4,6 +4,7 @@ import { Note } from '../models/Note'
 import app from '../app'
 import {
   request,
+  randInt,
   randStr,
   dropTables,
   throwIfError,
@@ -15,18 +16,23 @@ const NoteFields = [
   'createdAt', 'updatedAt',
 ]
 
-const seeding = userId => {
-  const createNote = i => new Note({
-    id: randStr(),
-    userId,
-    contents: randStr(),
-    pos: i,
-  })
+const seeding = (userId, n=1) => {
+  const createNote = pos =>
+    new Note({
+      id: randStr(),
+      userId,
+      contents: randStr(),
+      pos,
+    })
 
-  const seeds = times(10)
-    .map(createNote)
-
-  return Note.batchPut(seeds)
+  if(n === 1) {
+    const seed = createNote(randInt())
+    return seed.save().then(() => seed)
+  } else {
+    const seeds = times(n).map(createNote)
+    return Note.batchPut(seeds)
+      .then(() => seeds)
+  }
 }
 
 describe('userNotes', () => {
@@ -81,35 +87,21 @@ describe('userNotes', () => {
         .to.have.property(f)
         .to.be.exist
     )
-    expect(updated.contents)
-      .to.be.equal(toUpdate.contents)
-    expect(updated.pos)
-      .to.be.equal(toUpdate.pos)
+    expect(updated.contents).to.be.equal(toUpdate.contents)
+    expect(updated.pos).to.be.equal(toUpdate.pos)
     expect(new Date(updated.updatedAt))
       .to.be.above(new Date(created.updatedAt))
   })
 
-  it('should not allow to update other user\'s', async () => {
+  it('should allow to access only own notes', async () => {
     const userA = randStr()
     const userB = randStr()
 
-    const query = `mutation {
-      createNote(
-        contents: "${randStr()}"
-      ) {
-        ${NoteFields.join(', ')}
-      }
-    }`
-
-    const created = await request(app)
-      .set({ Authorization: userA })
-      .send({ query })
-      .then(throwIfError)
-      .then(r => r.body.data.createNote)
+    const created = await seeding(userA)
 
     const updateQuery = `mutation {
       updateNote(
-        id: "${created.id}"
+        id: "${created['id']}"
         contents: "${randStr()}"
       ) {
         ${NoteFields.join(', ')}
@@ -120,17 +112,36 @@ describe('userNotes', () => {
       .set({ Authorization: userB })
       .send({ query: updateQuery })
 
-    expect(res.body)
-      .to.have.property('errors')
-    expect(res.body.errors[0])
-      .to.have.property('code', 'Forbidden')
+    expect(res.body).to.have.property('errors')
+    expect(res.body.errors[0]).to.have.property('code', 'Forbidden')
+  })
+
+  it('should delete note', async () => {
+    const userId = randStr()
+
+    const created = await seeding(userId)
+
+    const deleteQuery = `mutation {
+      deleteNote(
+        id: "${created['id']}"
+      )
+    }`
+
+    await request(app)
+      .set({ Authorization: userId })
+      .send({ query: deleteQuery })
+      .then(throwIfError)
+
+    const note = await Note.get({ id: created['id'] })
+    expect(note).to.have.property('id', created['id'])
+    expect(note).to.not.have.property('contents')
   })
 
   it('should get list', async () => {
     const userId = randStr()
     const limit = 2
 
-    await seeding(userId)
+    await seeding(userId, 10)
 
     const query = `{
       userNotes(userId: "${userId}", limit: ${limit}) {
