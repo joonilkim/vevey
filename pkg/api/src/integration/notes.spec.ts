@@ -89,6 +89,43 @@ describe('userNotes', () => {
       .to.be.above(new Date(created.updatedAt))
   })
 
+  it('should not allow to update other user\'s', async () => {
+    const userA = randStr()
+    const userB = randStr()
+
+    const query = `mutation {
+      createNote(
+        contents: "${randStr()}"
+      ) {
+        ${NoteFields.join(', ')}
+      }
+    }`
+
+    const created = await request(app)
+      .set({ Authorization: userA })
+      .send({ query })
+      .then(throwIfError)
+      .then(r => r.body.data.createNote)
+
+    const updateQuery = `mutation {
+      updateNote(
+        id: "${created.id}"
+        contents: "${randStr()}"
+      ) {
+        ${NoteFields.join(', ')}
+      }
+    }`
+
+    const res = await request(app)
+      .set({ Authorization: userB })
+      .send({ query: updateQuery })
+
+    expect(res.body)
+      .to.have.property('errors')
+    expect(res.body.errors[0])
+      .to.have.property('code', 'Forbidden')
+  })
+
   it('should get list', async () => {
     const userId = randStr()
     const limit = 2

@@ -5,6 +5,8 @@ import * as Mutation from './Mutation'
 import * as Scalar from './Scalar'
 import * as Note from './Note'
 
+export { formatError } from './formatError'
+
 
 export const typeDefs = [
   Scalar.schema,

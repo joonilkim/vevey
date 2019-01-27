@@ -1,10 +1,9 @@
 import * as express from 'express'
 import * as graphql from 'express-graphql'
-import { formatError } from 'graphql'
-import { omitBy, pick } from 'lodash'
+import { omitBy } from 'lodash'
 import * as pinoLogger from 'pino-http'
 
-import { schema } from './graphql'
+import { schema, formatError } from './graphql'
 import { Note } from './models/Note'
 import { Context } from './Context'
 
@@ -47,11 +46,6 @@ export default function() {
   //// grapql ////
 
   router.use('/gql', function(req, res, next){
-    if(env !== 'production'){
-      req.log.debug(
-        pick(req, ['path', 'query', 'body']))
-    }
-
     // Create per every request
     const context: Context = {
       me: req['user'],
@@ -66,7 +60,9 @@ export default function() {
         // When error is occured, graphql composes its response, instead of
         // forwarding errors to last.
         // So, log errors in here.
-        req.log.error({ err })
+        const er = err['originalError'] || err
+        const level = er['isUserError'] ? 'info' : 'error'
+        req.log[level]({ err })
         return formatError(err)
       },
     })(req, res)

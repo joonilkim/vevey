@@ -1,4 +1,4 @@
-import { Forbidden } from 'http-errors'
+import { Forbidden } from './errors'
 import * as assert from 'assert-err'
 import { pickBy, identity } from 'lodash'
 import { Context } from '../Context'
@@ -33,8 +33,15 @@ function updateNote(
     conditionValues: { userId: me.id },
   }
 
+  const handlePermissionError = er => {
+    if(er.code === 'ConditionalCheckFailedException')
+      throw new Forbidden(er)
+    throw er
+  }
+
   // @ts-ignore
   return Note.update(key, toUpdate, condition)
+    .catch(handlePermissionError)
 }
 
 export const schema = `
