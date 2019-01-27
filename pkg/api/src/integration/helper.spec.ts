@@ -38,8 +38,10 @@ export const dropTables = tableNames => {
 }
 
 export const throwIfError = res => {
-  if(res.body.errors)
+  if(res.body.errors) {
+    console.log(res.body.errors[0])
     throw new Error(res.body.errors[0].message)
+  }
   return res
 }
 

@@ -52,7 +52,7 @@ function deleteNote(
   assert(!!me.id, Forbidden)
 
   const key = { id }
-  const toUpdate = { $DELETE: { contents: null }}
+  const toDelete = { contents: null, pos: null }
   const condition = {
     condition: 'userId = :userId',
     conditionValues: { userId: me.id },
@@ -65,7 +65,7 @@ function deleteNote(
   }
 
   // @ts-ignore
-  return Note.update(key, toUpdate, condition)
+  return Note.update(key, { $DELETE: toDelete }, condition)
     .then(() => null)
     .catch(handlePermission)
 }

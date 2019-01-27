@@ -10,10 +10,9 @@ function userNotes(
   assert(me.id === userId, Forbidden)
 
   return Note
-    .query('userId')
-    .eq(userId)
-    .where('pos')
-    .lt(pos)
+    .query('userId').eq(userId)
+    .where('pos').lt(pos)
+    .filter('contents').not().null()
     .limit(limit)
     .descending()
     .exec()
@@ -26,13 +25,8 @@ function note(
 ) {
   assert(!!me.id, Forbidden)
 
-  /*
-  const handleNotFound = er => {
-    if(er.code === 'ResourceNotFoundException')
-      throw wrapError(er, Forbidden)
-    throw er
-  }
-  */
+  const filterDeleted = note =>
+    note && note.contents ? note : null
 
   const handlePermission = note => {
     if(note)
@@ -42,6 +36,7 @@ function note(
 
   return Note
     .get({ id })
+    .then(filterDeleted)
     .then(handlePermission)
 }
 
