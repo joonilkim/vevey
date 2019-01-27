@@ -42,3 +42,8 @@ export const throwIfError = res => {
     throw new Error(res.body.errors[0].message)
   return res
 }
+
+export const print = data => {
+  console.log(data)
+  return data
+}

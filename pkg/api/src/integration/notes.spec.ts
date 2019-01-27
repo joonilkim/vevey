@@ -45,7 +45,7 @@ describe('userNotes', () => {
       createNote(
         contents: "${randStr()}"
       ) {
-        ${NoteFields.join(', ')}
+        ${NoteFields.join('\n')}
       }
     }`
 
@@ -72,7 +72,7 @@ describe('userNotes', () => {
         contents: "${toUpdate.contents}"
         pos: ${toUpdate.pos}
       ) {
-        ${NoteFields.join(', ')}
+        ${NoteFields.join('\n')}
       }
     }`
 
@@ -83,10 +83,8 @@ describe('userNotes', () => {
       .then(r => r.body.data.updateNote)
 
     NoteFields.forEach(f =>
-      expect(updated)
-        .to.have.property(f)
-        .to.be.exist
-    )
+      expect(updated).to.have.property(f).to.be.exist)
+
     expect(updated.contents).to.be.equal(toUpdate.contents)
     expect(updated.pos).to.be.equal(toUpdate.pos)
     expect(new Date(updated.updatedAt))
@@ -104,7 +102,7 @@ describe('userNotes', () => {
         id: "${created['id']}"
         contents: "${randStr()}"
       ) {
-        ${NoteFields.join(', ')}
+        ${NoteFields.join('\n')}
       }
     }`
 
@@ -145,9 +143,7 @@ describe('userNotes', () => {
 
     const query = `{
       userNotes(userId: "${userId}", limit: ${limit}) {
-        id,
-        userId,
-        pos
+        ${NoteFields.join('\n')}
       }
     }`
 
@@ -160,6 +156,40 @@ describe('userNotes', () => {
     expect(data)
       .to.have.property('userNotes')
       .to.be.length(limit)
+  })
+
+  it('should get a note', async () => {
+    const userId = randStr()
+
+    const created = await seeding(userId)
+
+    const query = `{
+      note(id: "${created['id']}") {
+        ${NoteFields.join('\n')}
+      }
+    }`
+
+    const note = await request(app)
+      .set({ Authorization: userId })
+      .send({ query })
+      .then(throwIfError)
+      .then(r => r.body.data.note)
+
+    NoteFields.forEach(f =>
+      expect(note).to.have.property(f).to.be.exist)
+
+    expect(note).to.have.property('id', created['id'])
+    expect(note).to.have.property('contents', created['contents'])
+
+    await Note.delete({id: created['id']})
+
+    const data = await request(app)
+      .set({ Authorization: userId })
+      .send({ query })
+      .then(throwIfError)
+      .then(r => r.body.data)
+
+    expect(data).to.have.property('note').to.be.not.exist
   })
 
 })

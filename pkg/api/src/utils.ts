@@ -1,3 +1,4 @@
+import { promisify } from 'util'
 import * as short from 'short-uuid'
 import * as fs from 'fs'
 
@@ -13,13 +14,6 @@ export function PromiseAll<T>(promises: Promise<T>[]): Promise<T[]>{
     return arr
   })
 }
-
-export const promisify = fn => (...args) =>
-  new Promise((rs, rj) =>
-    fn(...args, (er, data) => {
-      if(er) return rj(er)
-      return rs(data)
-    }))
 
 export const readFile = promisify(fs.readFile)
 

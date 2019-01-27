@@ -33,7 +33,7 @@ function updateNote(
     conditionValues: { userId: me.id },
   }
 
-  const handlePermissionError = er => {
+  const handlePermission = er => {
     if(er.code === 'ConditionalCheckFailedException')
       throw wrapError(er, Forbidden)
     throw er
@@ -41,7 +41,7 @@ function updateNote(
 
   // @ts-ignore
   return Note.update(key, toUpdate, condition)
-    .catch(handlePermissionError)
+    .catch(handlePermission)
 }
 
 function deleteNote(
@@ -58,7 +58,7 @@ function deleteNote(
     conditionValues: { userId: me.id },
   }
 
-  const handlePermissionError = er => {
+  const handlePermission = er => {
     if(er.code === 'ConditionalCheckFailedException')
       throw wrapError(er, Forbidden)
     throw er
@@ -67,7 +67,7 @@ function deleteNote(
   // @ts-ignore
   return Note.update(key, toUpdate, condition)
     .then(() => null)
-    .catch(handlePermissionError)
+    .catch(handlePermission)
 }
 
 export const schema = `
