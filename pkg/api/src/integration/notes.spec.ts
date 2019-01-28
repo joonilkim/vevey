@@ -7,6 +7,7 @@ import {
   randInt,
   randStr,
   dropTables,
+  requireError,
   throwIfError,
 } from './helper.spec'
 
@@ -51,7 +52,7 @@ const createRequest = (userId, { contents }) => {
     .send({ query })
 }
 
-const updateRequest = (id, userId, { contents, pos }) => {
+const updateRequest = (userId, id, { contents, pos }) => {
   const updateQuery = `mutation {
     updateNote(
       id: "${id}"
@@ -67,7 +68,7 @@ const updateRequest = (id, userId, { contents, pos }) => {
     .send({ query: updateQuery })
 }
 
-const deleteRequest = (id, userId) => {
+const deleteRequest = (userId, id) => {
     const deleteQuery = `mutation {
       deleteNote(id: "${id}")
     }`
@@ -77,7 +78,7 @@ const deleteRequest = (id, userId) => {
       .send({ query: deleteQuery })
 }
 
-const getRequest = (id, userId) => {
+const getRequest = (userId, id) => {
   const query = `{
     note(id: "${id}") {
       ${NoteFields.join('\n')}
@@ -101,12 +102,13 @@ const listRequest = (userId, limit) => {
     .send({ query })
 }
 
-describe('userNotes', () => {
+describe('Note', () => {
   beforeEach(() => dropTables([Note['$__']['name']]))
 
   it('should create and update', async () => {
     const userId = randStr()
 
+    // create
     const contents = randStr()
     const created: Obj = await createRequest(userId, { contents })
       .then(throwIfError)
@@ -118,11 +120,16 @@ describe('userNotes', () => {
         .to.be.exist
     )
 
+    // require login
+    await createRequest(null, { contents })
+      .then(requireError('Unauthorized'))
+
+    // update
     const toUpdate = {
       contents: randStr(),
       pos: new Date().getTime(),
     }
-    const updated: Obj = await updateRequest(created.id, userId, toUpdate)
+    const updated: Obj = await updateRequest(userId, created.id, toUpdate)
       .then(throwIfError)
       .then(r => r.body.data.updateNote)
 
@@ -133,35 +140,33 @@ describe('userNotes', () => {
     expect(updated.pos).to.be.equal(toUpdate.pos)
     expect(new Date(updated.updatedAt))
       .to.be.above(new Date(created.updatedAt))
+
+    // require login
+    await updateRequest(null, created.id, toUpdate)
+      .then(requireError('Unauthorized'))
+
+    // require owner
+    const notMe = randStr()
+    await updateRequest(notMe, created.id, toUpdate)
+      .then(requireError('Forbidden'))
   })
 
-  it('should allow to access only own notes', async () => {
-    const [userA, userB] = [randStr(), randStr()]
-
-    const created: Obj = await seeding(userA)
-
-    const toUpdate = {
-      contents: randStr(),
-      pos: new Date().getTime(),
-    }
-    const res = await updateRequest(created.id, userB, toUpdate)
-
-    expect(res.body).to.have.property('errors')
-    expect(res.body.errors[0]).to.have.property('code', 'Forbidden')
-  })
-
-  it('should delete note', async () => {
+  it('should delete a note', async () => {
     const userId = randStr()
 
     const created: Obj = await seeding(userId)
 
-    await deleteRequest(created.id, userId)
+    await deleteRequest(userId, created.id)
       .then(throwIfError)
 
     const note = await Note.get({ id: created.id })
 
     expect(note).to.have.property('id', created.id)
     expect(note).to.not.have.property('contents')
+
+    // require login
+    await deleteRequest(null, created.id)
+      .then(requireError('Unauthorized'))
   })
 
   it('should get list', async () => {
@@ -176,8 +181,13 @@ describe('userNotes', () => {
 
     expect(notes).to.be.length(limit)
 
+    // requires login
+    await listRequest(null, limit)
+      .then(requireError('Unauthorized'))
+
+    // should filter deleted one
     const toDelete = notes[0].id
-    await deleteRequest(toDelete, userId)
+    await deleteRequest(userId, toDelete)
 
     const notes2 = await listRequest(userId, limit)
       .then(throwIfError)
@@ -193,7 +203,7 @@ describe('userNotes', () => {
 
     const created: Obj = await seeding(userId)
 
-    const note = await getRequest(created.id, userId)
+    const note = await getRequest(userId, created.id)
       .then(throwIfError)
       .then(r => r.body.data.note)
 
@@ -203,9 +213,14 @@ describe('userNotes', () => {
     expect(note).to.have.property('id', created.id)
     expect(note).to.have.property('contents', created.contents)
 
-    await deleteRequest(created.id, userId)
+    // requires login
+    await getRequest(null, created.id)
+      .then(requireError('Unauthorized'))
 
-    const data = await getRequest(created.id, userId)
+    // should filter deleted one
+    await deleteRequest(userId, created.id)
+
+    const data = await getRequest(userId, created.id)
       .then(throwIfError)
       .then(r => r.body.data)
 

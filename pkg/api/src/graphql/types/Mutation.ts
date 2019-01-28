@@ -1,16 +1,13 @@
-import { Forbidden, wrapError } from './errors'
-import * as assert from 'assert-err'
 import { pickBy, identity } from 'lodash'
-import { Context } from '../Context'
-import { createUUID } from '../utils'
+import { createUUID } from '../../utils'
+import { Context } from '../../Context'
+import { Forbidden, wrapError } from '../errors'
 
 function createNote(
   _,
   { contents },
   { me, Note }: Context,
 ) {
-  assert(!!me.id, Forbidden)
-
   return Note.create({
     id: createUUID(),
     userId: me.id,
@@ -24,8 +21,6 @@ function updateNote(
   { id, contents, pos },
   { me, Note }: Context,
 ) {
-  assert(!!me.id, Forbidden)
-
   const key = { id }
   const toUpdate = pickBy({ contents, pos }, identity)
   const condition = {
@@ -33,7 +28,7 @@ function updateNote(
     conditionValues: { userId: me.id },
   }
 
-  const handlePermission = er => {
+  const requirePermission = er => {
     if(er.code === 'ConditionalCheckFailedException')
       throw wrapError(er, Forbidden)
     throw er
@@ -41,7 +36,7 @@ function updateNote(
 
   // @ts-ignore
   return Note.update(key, toUpdate, condition)
-    .catch(handlePermission)
+    .catch(requirePermission)
 }
 
 function deleteNote(
@@ -49,8 +44,6 @@ function deleteNote(
   { id },
   { me, Note }: Context,
 ) {
-  assert(!!me.id, Forbidden)
-
   const key = { id }
   const toDelete = { contents: null, pos: null }
   const condition = {
@@ -58,7 +51,7 @@ function deleteNote(
     conditionValues: { userId: me.id },
   }
 
-  const handlePermission = er => {
+  const requirePermission = er => {
     if(er.code === 'ConditionalCheckFailedException')
       throw wrapError(er, Forbidden)
     throw er
@@ -67,23 +60,24 @@ function deleteNote(
   // @ts-ignore
   return Note.update(key, { $DELETE: toDelete }, condition)
     .then(() => null)
-    .catch(handlePermission)
+    .catch(requirePermission)
 }
 
 export const schema = `
   type Mutation {
+
     createNote(
-      contents: String!
+      contents: String! @auth
     ): Note
 
     updateNote(
-      id: ID!
+      id: ID! @auth
       contents: String!
       pos: Integer
     ): Note
 
     deleteNote(
-      id: ID!
+      id: ID! @auth
     ): Boolean
   }
 `
@@ -95,5 +89,3 @@ export const resolvers = {
     deleteNote,
   }
 }
-
-

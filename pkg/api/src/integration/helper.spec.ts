@@ -37,6 +37,11 @@ export const dropTables = tableNames => {
       .map(drop))
 }
 
+export const print = data => {
+  console.log(data)
+  return data
+}
+
 export const throwIfError = res => {
   if(res.body.errors) {
     console.log(res.body.errors[0])
@@ -45,7 +50,7 @@ export const throwIfError = res => {
   return res
 }
 
-export const print = data => {
-  console.log(data)
-  return data
-}
+export const requireError = code => r => (
+  r.body.errors &&
+  r.body.errors[0].code === code
+)

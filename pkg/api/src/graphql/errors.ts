@@ -23,8 +23,9 @@ export function wrapError(err: Error, type=InternalError, message?: string){
 function createError(name: string, isUserError=true){
   function fn(message?: string, extra?: object){
     Error.captureStackTrace(this, this.constructor)
-    Error.call(this, message)
+    Error.call(this, message || name)
     this.extra = { message }
+    this.message = message || name
   }
 
   fn.prototype = Object.create(Error.prototype)

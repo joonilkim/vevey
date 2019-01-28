@@ -1,6 +1,6 @@
-import { Forbidden } from './errors'
 import * as assert from 'assert-err'
-import { Context } from '../Context'
+import { Context } from '../../Context'
+import { Forbidden } from '../errors'
 
 function userNotes(
   _,
@@ -23,12 +23,10 @@ function note(
   { id },
   { me, Note }: Context,
 ) {
-  assert(!!me.id, Forbidden)
-
   const filterDeleted = note =>
     note && note.contents ? note : null
 
-  const handlePermission = note => {
+  const requirePermission = note => {
     if(note)
       assert(me.id === note.userId, Forbidden)
     return note
@@ -37,7 +35,7 @@ function note(
   return Note
     .get({ id })
     .then(filterDeleted)
-    .then(handlePermission)
+    .then(requirePermission)
 }
 
 export const schema = `
@@ -45,13 +43,13 @@ export const schema = `
     ping: String!
 
     userNotes(
-      userId: ID!
+      userId: ID! @auth(me: true)
       pos: Integer = ${Number.MAX_SAFE_INTEGER}
       limit: Int!
     ): [Note!]!
 
     note(
-      id: ID!
+      id: ID! @auth
     ): Note
   }
 `
