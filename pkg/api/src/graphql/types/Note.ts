@@ -1,8 +1,8 @@
 export const schema = `
   type Note {
-    id: ID! @auth
-    userId: ID! @auth(me: true)
-    contents: String! @auth
+    id: ID!
+    userId: ID!
+    contents: String!
     pos: Integer!
     createdAt: Date!
     updatedAt: Date!

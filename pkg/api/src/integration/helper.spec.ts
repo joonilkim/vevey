@@ -1,3 +1,4 @@
+import { inspect } from 'util'
 import * as _request from 'supertest'
 import { PromiseAll } from '../utils'
 import dynamoose from '../connectors/dynamoose'
@@ -38,19 +39,20 @@ export const dropTables = tableNames => {
 }
 
 export const print = data => {
-  console.log(data)
+  console.info(data)
   return data
 }
 
-export const throwIfError = res => {
-  if(res.body.errors) {
-    console.log(res.body.errors[0])
-    throw new Error(res.body.errors[0].message)
-  }
-  return res
+export const throwIfError = r => {
+  if(!r.body.errors)
+    return r
+  throw new Error(r.body.errors[0].message)
 }
 
-export const requireError = code => r => (
-  r.body.errors &&
-  r.body.errors[0].code === code
-)
+export const requireError = code => r => {
+  if(r.body.errors && r.body.errors[0].code === code)
+    return r
+
+  const msg = r.body.errors ? inspect(r.body.errors[0], false, null) : '{}'
+  throw new Error(`Expected: ${inspect({ code })}, but got: ${msg}`)
+}

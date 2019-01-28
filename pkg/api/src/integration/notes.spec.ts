@@ -47,8 +47,10 @@ const createRequest = (userId, { contents }) => {
     }
   }`
 
+  const headers = userId ? { Authorization: userId } : {}
+
   return request(app)
-    .set({ Authorization: userId })
+    .set(headers)
     .send({ query })
 }
 
@@ -63,8 +65,10 @@ const updateRequest = (userId, id, { contents, pos }) => {
     }
   }`
 
+  const headers = userId ? { Authorization: userId } : {}
+
   return request(app)
-    .set({ Authorization: userId })
+    .set(headers)
     .send({ query: updateQuery })
 }
 
@@ -73,9 +77,11 @@ const deleteRequest = (userId, id) => {
       deleteNote(id: "${id}")
     }`
 
-    return request(app)
-      .set({ Authorization: userId })
-      .send({ query: deleteQuery })
+  const headers = userId ? { Authorization: userId } : {}
+
+  return request(app)
+    .set(headers)
+    .send({ query: deleteQuery })
 }
 
 const getRequest = (userId, id) => {
@@ -85,20 +91,28 @@ const getRequest = (userId, id) => {
     }
   }`
 
+
+  const headers = userId ? { Authorization: userId } : {}
+
   return request(app)
-    .set({ Authorization: userId })
+    .set(headers)
     .send({ query })
 }
 
 const listRequest = (userId, limit) => {
   const query = `{
-    userNotes(userId: "${userId}", limit: ${limit}) {
+    userNotes(
+      userId: "${userId}"
+      limit: ${limit}
+    ) {
       ${NoteFields.join('\n')}
     }
   }`
 
+  const headers = userId ? { Authorization: userId } : {}
+
   return request(app)
-    .set({ Authorization: userId })
+    .set(headers)
     .send({ query })
 }
 
@@ -111,7 +125,7 @@ describe('Note', () => {
     // create
     const contents = randStr()
     const created: Obj = await createRequest(userId, { contents })
-      .then(throwIfError)
+      .then(r => throwIfError(r))
       .then(r => r.body.data.createNote)
 
     NoteFields.forEach(f =>
@@ -122,7 +136,7 @@ describe('Note', () => {
 
     // require login
     await createRequest(null, { contents })
-      .then(requireError('Unauthorized'))
+      .then(r => requireError('Unauthorized')(r))
 
     // update
     const toUpdate = {
@@ -130,7 +144,7 @@ describe('Note', () => {
       pos: new Date().getTime(),
     }
     const updated: Obj = await updateRequest(userId, created.id, toUpdate)
-      .then(throwIfError)
+      .then(r => throwIfError(r))
       .then(r => r.body.data.updateNote)
 
     NoteFields.forEach(f =>
@@ -143,12 +157,12 @@ describe('Note', () => {
 
     // require login
     await updateRequest(null, created.id, toUpdate)
-      .then(requireError('Unauthorized'))
+      .then(r => requireError('Unauthorized')(r))
 
     // require owner
     const notMe = randStr()
     await updateRequest(notMe, created.id, toUpdate)
-      .then(requireError('Forbidden'))
+      .then(r => requireError('Forbidden')(r))
   })
 
   it('should delete a note', async () => {
@@ -157,7 +171,7 @@ describe('Note', () => {
     const created: Obj = await seeding(userId)
 
     await deleteRequest(userId, created.id)
-      .then(throwIfError)
+      .then(r => throwIfError(r))
 
     const note = await Note.get({ id: created.id })
 
@@ -166,7 +180,7 @@ describe('Note', () => {
 
     // require login
     await deleteRequest(null, created.id)
-      .then(requireError('Unauthorized'))
+      .then(r => requireError('Unauthorized')(r))
   })
 
   it('should get list', async () => {
@@ -176,21 +190,28 @@ describe('Note', () => {
     await seeding(userId, 10)
 
     const notes = await listRequest(userId, limit)
-      .then(throwIfError)
+      .then(r => throwIfError(r))
       .then(r => r.body.data.userNotes)
 
     expect(notes).to.be.length(limit)
 
     // requires login
     await listRequest(null, limit)
-      .then(requireError('Unauthorized'))
+      .then(r => requireError('Unauthorized')(r))
+
+    // constraint check
+    await listRequest(userId, -1)
+      .then(r => requireError('ValidationError')(r))
+
+    await listRequest(userId, 10000)
+      .then(r => requireError('ValidationError')(r))
 
     // should filter deleted one
     const toDelete = notes[0].id
     await deleteRequest(userId, toDelete)
 
     const notes2 = await listRequest(userId, limit)
-      .then(throwIfError)
+      .then(r => throwIfError(r))
       .then(r => r.body.data.userNotes)
 
     expect(notes2).to.be.length(limit)
@@ -204,7 +225,7 @@ describe('Note', () => {
     const created: Obj = await seeding(userId)
 
     const note = await getRequest(userId, created.id)
-      .then(throwIfError)
+      .then(r => throwIfError(r))
       .then(r => r.body.data.note)
 
     NoteFields.forEach(f =>
@@ -215,13 +236,13 @@ describe('Note', () => {
 
     // requires login
     await getRequest(null, created.id)
-      .then(requireError('Unauthorized'))
+      .then(r => requireError('Unauthorized')(r))
 
     // should filter deleted one
     await deleteRequest(userId, created.id)
 
     const data = await getRequest(userId, created.id)
-      .then(throwIfError)
+      .then(r => throwIfError(r))
       .then(r => r.body.data)
 
     expect(data).to.have.property('note').to.be.not.exist

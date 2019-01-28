@@ -1,6 +1,6 @@
 export const formatError = graphqlError => {
   let er = graphqlError['originalError'] || graphqlError
-  const isUserError = er['isUserError'] || !graphqlError['originalError']
+  const isUserError = !graphqlError['originalError'] || er['isUserError']
 
   const location = er['location']
   const path = er['path']

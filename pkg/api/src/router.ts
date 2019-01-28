@@ -1,3 +1,4 @@
+import * as assert from 'assert'
 import * as express from 'express'
 import * as graphql from 'express-graphql'
 import { omitBy } from 'lodash'
@@ -38,6 +39,8 @@ export default function() {
 
   router.use((req, res, next) => {
     const id = req.get('Authorization')
+    assert(!['null', 'undefined'].includes(id))
+
     req['user'] = { id }
     next()
   })
@@ -61,7 +64,8 @@ export default function() {
         // forwarding errors to last.
         // So, log errors in here.
         const er = err['originalError'] || err
-        const level = er['isUserError'] ? 'info' : 'error'
+        const isUserError = !err['originalError'] || er['isUserError']
+        const level = isUserError ? 'info' : 'error'
         req.log[level]({ err })
         return formatError(err)
       },

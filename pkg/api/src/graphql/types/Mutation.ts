@@ -67,18 +67,18 @@ export const schema = `
   type Mutation {
 
     createNote(
-      contents: String! @auth
-    ): Note
+      contents: String! @constraint(minLength: 1)
+    ): Note @auth
 
     updateNote(
-      id: ID! @auth
-      contents: String!
+      id: ID!
+      contents: String! @constraint(minLength: 1)
       pos: Integer
-    ): Note
+    ): Note @auth
 
     deleteNote(
-      id: ID! @auth
-    ): Boolean
+      id: ID!
+    ): Boolean @auth
   }
 `
 
