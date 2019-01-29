@@ -4,12 +4,11 @@ test:
 
 lambda.zip: $(shell find src) package.json yarn.lock
 	rm -rf build $@ && mkdir -p build && \
-	tsc -p tsconfig.build.json && \
+	tsc --build tsconfig.build.json && \
 	cp package.json yarn.lock build/ &&  \
-	cd build && yarn install --prod && \
+	cd build && yarn install --prod --pure-lockfile && \
 	rm -rf yarn.lock node_modules/aws-sdk && \
-	zip -rq ../$@ * && \
-	cd .. && rm -rf build
+	zip -rq ../$@ *
 
 deploy: lambda.zip
 	test ${function_name} && \

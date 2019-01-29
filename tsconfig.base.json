@@ -2,7 +2,11 @@
   "compilerOptions": {
     "alwaysStrict": true,
     "baseUrl": ".",
-    "lib": ["es2017", "es2018.promise"],
+    "lib": [
+      "es2017",
+      "es2018.promise",
+      "esnext.asynciterable"
+    ],
     "module": "commonjs",
     "moduleResolution": "node",
     "paths": {
