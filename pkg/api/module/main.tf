@@ -77,7 +77,7 @@ resource "aws_lambda_function" "_" {
   publish       = true
   role          = "${aws_iam_role._.arn}"
 
-  memory_size   = 512
+  memory_size   = 1024
   timeout       = 10
 
   environment {

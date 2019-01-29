@@ -1,12 +1,12 @@
 import * as assert from 'assert'
 import * as express from 'express'
 import * as graphql from 'express-graphql'
-import { omitBy } from 'lodash'
 import * as pinoLogger from 'pino-http'
 
 import { schema, formatError } from './graphql'
 import { Note } from './models/Note'
 import { Context } from './Context'
+import { omitBy } from './utils'
 
 
 export default function() {

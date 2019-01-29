@@ -1,5 +1,4 @@
-import { pickBy, identity } from 'lodash'
-import { createUUID } from '../../utils'
+import { createUUID, pickBy } from '../../utils'
 import { Context } from '../../Context'
 import { Forbidden, wrapError } from '../errors'
 
@@ -22,7 +21,7 @@ function updateNote(
   { me, Note }: Context,
 ) {
   const key = { id }
-  const toUpdate = pickBy({ contents, pos }, identity)
+  const toUpdate = pickBy({ contents, pos }, v => !!v)
   const condition = {
     condition: 'userId = :userId',
     conditionValues: { userId: me.id },

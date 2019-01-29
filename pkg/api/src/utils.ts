@@ -35,3 +35,25 @@ export const when = (x?) => ({
   case: (pred, fn) => execPred(pred, x) ? resolve(exec(fn, x)) : when(x),
   else: fn => exec(fn, x),
 })
+
+export const pickBy = (o, pred) => {
+  let r = {}
+  Object.entries(o).forEach(([k, v]) => {
+    if(pred(v, k)){
+      r[k] = v
+    }
+  })
+  return r
+}
+
+export const omitBy = (o, pred) => {
+  let r = {}
+  Object.entries(o).forEach(([k, v]) => {
+    if(!pred(v, k)){
+      r[k] = v
+    }
+  })
+  return r
+}
+
+export const times = (n: number) => (Array(n).fill(0).map((_, i) => i))
