@@ -9,3 +9,7 @@ variable "region" {
 variable "stage" {
   description = "A stage name"
 }
+
+variable "dynamodb_prefix" {
+  description = "example_"
+}

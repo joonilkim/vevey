@@ -17,3 +17,7 @@ variable "pkg_bucket" {
 variable "log_bucket" {
   default = "log.vevey.co"
 }
+
+variable "dynamodb_prefix" {
+  default = "vevey_"
+}

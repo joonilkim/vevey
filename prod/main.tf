@@ -4,6 +4,7 @@ module "api" {
   domain    = "${var.domain}"
   region    = "${var.region}"
   stage     = "${var.stage}"
+  dynamodb_prefix = "${var.dynamodb_prefix}"
 }
 
 module "web" {
