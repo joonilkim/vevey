@@ -25,9 +25,11 @@ export default function() {
     },
   }
 
+  const prettier = { prettyPrint: { colorize: true } }
+
   router.use(
     pinoLogger({
-      prettyPrint: { colorize: true },
+      ...(env === 'production' ? {} : prettier) ,
       serializers,
       level: env === 'test' ? 'error' : 'info',
     }),
