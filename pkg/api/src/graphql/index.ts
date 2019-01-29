@@ -10,7 +10,9 @@ export const typeDefs = [
   types.schema,
 ].join('\n')
 
-export const resolvers = types.resolvers
+export const resolvers = {
+  ...types.resolvers,
+}
 
 export const schemaDirectives = directives.schemaDirectives
 

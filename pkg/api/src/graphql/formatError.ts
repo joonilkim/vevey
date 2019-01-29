@@ -1,5 +1,7 @@
 export const formatError = graphqlError => {
   let er = graphqlError['originalError'] || graphqlError
+  er = er['errors'] ? er.errors[0] : er
+
   const isUserError = !graphqlError['originalError'] || er['isUserError']
 
   const location = er['location']

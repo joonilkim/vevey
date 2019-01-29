@@ -50,9 +50,9 @@ export const throwIfError = r => {
 }
 
 export const requireError = code => r => {
-  if(r.body.errors && r.body.errors[0].code === code)
+  if(r.body.errors && r.body.errors.find(e => e.code === code))
     return r
 
-  const msg = r.body.errors ? inspect(r.body.errors[0], false, null) : '{}'
+  const msg = r.body.errors ? inspect(r.body.errors, false, null) : '{}'
   throw new Error(`Expected: ${inspect({ code })}, but got: ${msg}`)
 }

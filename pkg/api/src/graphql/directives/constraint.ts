@@ -1,68 +1,34 @@
 import * as assert from 'assert-err'
-import {
-  GraphQLNonNull,
-  GraphQLScalarType,
-} from 'graphql'
+import { defaultFieldResolver, } from 'graphql'
 import { SchemaDirectiveVisitor } from 'graphql-tools'
 import { ValidationError } from '../errors'
 
 class ConstraintDirective extends SchemaDirectiveVisitor {
-  visitArgumentDefinition(field){
-    this.wrapField(field)
+  visitArgumentDefinition(arg, { field }){
+    if (field._constraintWrapped) return
+    field._constraintWrapped = true
+    this.wrapField(arg, field)
   }
 
-  visitInputFieldDefinition(field) {
-    this.wrapField(field)
-  }
+  wrapField(arg, field){
+    const argName = arg.astNode.name.value
 
-  wrapField(field){
-    const fieldName = field.astNode.name.value
+    const { resolve = defaultFieldResolver } = field
+    const directiveArgs = this.args
 
-    if (field.type instanceof GraphQLNonNull &&
-        field.type.ofType instanceof GraphQLScalarType) {
-
-      field.type = new GraphQLNonNull(
-        new ConstraintType(fieldName, field.type.ofType, this.args))
-
-    } else if (field.type instanceof GraphQLScalarType) {
-
-      field.type = new ConstraintType(fieldName, field.type, this.args)
-    } else {
-      throw new ValidationError(
-        `${fieldName} is not a scalar type: ${field.type}`)
-    }
-  }
-}
-
-class ConstraintType extends GraphQLScalarType {
-  constructor (fieldName, type, args) {
-    const validate = value =>
+    field.resolve = function(...args){
+      const value = args[1][argName]
       Object.keys(validators)
-        .filter(name => !!args[name])
-        .forEach(name => validators[name](fieldName, args[name], value))
+        .filter(name => !!directiveArgs[name])
+        .forEach(name =>
+          validators[name](argName, directiveArgs[name], value))
 
-    super({
-      name: `ConstraintType`,
-      serialize (value) {
-        return type.serialize(value)
-      },
-      parseValue (value) {
-        value = type.parseValue(value)
+      return resolve.apply(this, args)
+    }
 
-        validate(value)
-
-        return value
-      },
-      parseLiteral (ast) {
-        const value = type.parseLiteral(ast)
-
-        validate(value)
-
-        return value
-      }
-    })
   }
 }
+
 
 const validators = {
   min(fieldName, arg, val){
@@ -109,7 +75,7 @@ directive @constraint(
   minLength: Int
   maxLength: Int
   pattern: String
-) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+) on ARGUMENT_DEFINITION
 `
 
 export const directive = {
