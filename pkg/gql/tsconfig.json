@@ -1,13 +1,18 @@
 {
   "extends": "../../tsconfig.base",
   "compilerOptions": {
-    "outDir": "./build"
+    "composite": true,
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
   "include": [
-    "src/**/*.ts"
+    "src"
   ],
   "exclude": [
     "node_modules",
     "src/**/*.spec.ts"
+  ],
+  "references": [
+    { "path": "../common" }
   ]
 }

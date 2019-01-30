@@ -1,20 +1,26 @@
 import { makeExecutableSchema } from 'graphql-tools'
-import * as directives from './directives'
+import { gtypes } from '@vevey/gql'
 import * as types from './types'
-
-export { formatError } from './formatError'
 
 
 export const typeDefs = [
-  directives.schema,
+  gtypes.auth.schema,
+  gtypes.constraint.schema,
+  gtypes.Date.schema,
+  gtypes.Integer.schema,
   types.schema,
 ].join('\n')
 
 export const resolvers = {
+  ...gtypes.Date.resolvers,
+  ...gtypes.Integer.resolvers,
   ...types.resolvers,
 }
 
-export const schemaDirectives = directives.schemaDirectives
+export const schemaDirectives = {
+  ...gtypes.auth.directive,
+  ...gtypes.constraint.directive,
+}
 
 export const schema = makeExecutableSchema({
   typeDefs,

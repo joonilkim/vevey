@@ -1,6 +1,6 @@
 import { inspect } from 'util'
 import * as _request from 'supertest'
-import { PromiseAll } from '../utils'
+import { PromiseAll } from '@vevey/common'
 import dynamoose from '../connectors/dynamoose'
 
 

@@ -1,6 +1,6 @@
-import { createUUID, pickBy } from '../../utils'
+import { generate as generateUUID } from 'short-uuid'
+import { pickBy, Forbidden, wrapError } from '@vevey/common'
 import { Context } from '../../Context'
-import { Forbidden, wrapError } from '../errors'
 
 function createNote(
   _,
@@ -8,7 +8,7 @@ function createNote(
   { me, Note }: Context,
 ) {
   return Note.create({
-    id: createUUID(),
+    id: generateUUID(),
     userId: me.id,
     contents,
     pos: new Date().getTime(),

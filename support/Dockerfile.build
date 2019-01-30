@@ -1,0 +1,38 @@
+FROM amazonlinux:latest
+
+ARG NODE_VERSION=8.x
+ARG YARN_REPO="/etc/yum.repos.d/yarn.repo"
+
+# Install C and wget
+RUN yum install gcc44 gcc-c++ libgcc44 cmake wget tar gzip zip unzip make openssl-devel -y
+
+# Install node
+RUN curl -sL https://rpm.nodesource.com/setup_"$NODE_VERSION" | bash -
+RUN yum -y install nodejs
+
+# Install yarn
+RUN wget https://dl.yarnpkg.com/rpm/yarn.repo -O $YARN_REPO && \
+    yum install -y yarn
+
+# Install aws cli
+RUN curl -sL https://s3.amazonaws.com/aws-cli/awscli-bundle.zip \
+    -o awscli-bundle.zip && \
+    unzip awscli-bundle.zip -d /tmp && \
+    /tmp/awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
+
+# Install development tools
+RUN yum -y install http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+RUN yum -y install git jq
+RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.rpm.sh | bash
+RUN yum -y install git-lfs
+RUN git lfs install --force
+
+RUN mkdir -p /build
+
+COPY . /build/
+
+RUN mkdir -p /repo
+
+WORKDIR /repo/
+
+ENTRYPOINT ["/bin/bash", "-c"]

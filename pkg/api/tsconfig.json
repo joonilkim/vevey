@@ -1,12 +1,17 @@
 {
   "extends": "../../tsconfig.base",
   "compilerOptions": {
-    "outDir": "./build"
+    "outDir": "dist"
   },
   "include": [
-    "src"
+    "src/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "src/**/*.spec.ts"
+  ],
+  "references": [
+    { "path": "../gql" },
+    { "path": "../common" }
   ]
 }

@@ -1,7 +1,7 @@
 import * as assert from 'assert-err'
 import { defaultFieldResolver, } from 'graphql'
 import { SchemaDirectiveVisitor } from 'graphql-tools'
-import { ValidationError } from '../errors'
+import { ValidationError } from '@vevey/common'
 
 class ConstraintDirective extends SchemaDirectiveVisitor {
   visitArgumentDefinition(arg, { field }){
@@ -69,13 +69,13 @@ const validators = {
 }
 
 export const schema = `
-directive @constraint(
-  min: Int
-  max: Int
-  minLength: Int
-  maxLength: Int
-  pattern: String
-) on ARGUMENT_DEFINITION
+  directive @constraint(
+    min: Int
+    max: Int
+    minLength: Int
+    maxLength: Int
+    pattern: String
+  ) on ARGUMENT_DEFINITION
 `
 
 export const directive = {

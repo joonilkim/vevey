@@ -72,7 +72,7 @@ resource "aws_lambda_function" "_" {
 
   # not allows '.' character for function name
   function_name = "${replace("api.${var.domain}",".","-")}"
-  handler       = "index.handler"
+  handler       = "dist/index.handler"
   runtime       = "nodejs8.10"
   publish       = true
   role          = "${aws_iam_role._.arn}"

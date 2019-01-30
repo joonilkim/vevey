@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  build:
+    restart: always
+    build:
+      context: ..
+      dockerfile: support/Dockerfile.build
+    volumes:
+      - ..:/repo

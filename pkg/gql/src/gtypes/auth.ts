@@ -1,7 +1,7 @@
 import * as assert from 'assert-err'
 import { defaultFieldResolver } from 'graphql'
 import { SchemaDirectiveVisitor } from 'graphql-tools'
-import { Unauthorized } from '../errors'
+import { Unauthorized } from '@vevey/common'
 
 class AuthDirective extends SchemaDirectiveVisitor {
   visitFieldDefinition(field, detail) {
@@ -21,7 +21,7 @@ class AuthDirective extends SchemaDirectiveVisitor {
 }
 
 export const schema = `
-directive @auth on FIELD_DEFINITION
+  directive @auth on FIELD_DEFINITION
 `
 
 export const directive = {

@@ -1,7 +1,7 @@
 {
-  "name": "route",
+  "name": "@vevey/common",
   "version": "0.0.0",
-  "main": "dist/secure.js",
+  "main": "dist/index.js",
   "repository": "https://github.com/joonilkim/vevey.git",
   "author": {
     "name": "Joonil Kim",
@@ -10,8 +10,6 @@
   "license": "GPL-3.0",
   "private": true,
   "scripts": {
-    "lint": "tslint src/**/*.ts",
-    "test": "make test",
-    "package": "make package"
+    "build": "tsc -b ."
   }
 }

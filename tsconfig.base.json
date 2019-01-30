@@ -10,9 +10,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "paths": {
-      "*": [
-        "src/types"
-      ]
+      "*": [ "src/typings" ]
     },
     "noUnusedLocals": true,
     "resolveJsonModule": true

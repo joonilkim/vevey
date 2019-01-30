@@ -1,12 +1,10 @@
-import * as assert from 'assert'
 import * as express from 'express'
-import * as graphql from 'express-graphql'
-import * as pinoLogger from 'pino-http'
-
-import { schema, formatError } from './graphql'
+import * as gql from '@vevey/gql'
+import { schema } from './graphql'
 import { Note } from './models/Note'
 import { Context } from './Context'
-import { omitBy } from './utils'
+
+const { auth, graphqlHttp, logger } = gql.express
 
 
 export default function() {
@@ -14,67 +12,22 @@ export default function() {
 
   const router = express.Router()
 
-  //// logger ////
+  router.use(logger({ env }))
 
-  const serializers = {
-    req(req: express.Request){
-      req.headers = omitBy(
-        req.headers,
-        (_, k: string) => /cloudfront|apigateway/.test(k))
-      return req
-    },
-  }
-
-  const prettier = { prettyPrint: { colorize: true } }
-
-  router.use(
-    pinoLogger({
-      ...(env === 'production' ? {} : prettier) ,
-      serializers,
-      level: env === 'test' ? 'error' : 'info',
-    }),
-  )
-
-  //// Models ////
-
-  //// Authentication ////
-
-  router.use((req, res, next) => {
-    const id = req.get('Authorization')
-    assert(!['null', 'undefined'].includes(id))
-
-    req['user'] = { id }
-    next()
-  })
-
+  router.use(auth())
 
   //// grapql ////
 
-  router.use('/gql', function(req, res, next){
-    // Create per every request
-    const context: Context = {
-      me: req['user'],
-      Note,
-    }
-
-    return graphql({
-      schema,
-      graphiql: env === 'development',
-      context,
-      formatError(err){
-        // When error is occured, graphql composes its response, instead of
-        // forwarding errors to last.
-        // So, log errors in here.
-        const er = err['originalError'] || err
-        const isUserError = !err['originalError'] || er['isUserError']
-        const level = isUserError ? 'info' : 'error'
-        req.log[level]({ err })
-        return formatError(err)
-      },
-    })(req, res)
-    .catch(next)
+  const createContext = (req): Context => ({
+    me: req['user'],
+    Note,
   })
 
+  router.use('/gql', graphqlHttp({
+    schema,
+    graphiql: env === 'development',
+    createContext,
+  }))
 
   //// rest api ////
 

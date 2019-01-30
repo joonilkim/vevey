@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { times } from '../utils'
+import { times } from '@vevey/common'
 import { Note } from '../models/Note'
 import app from '../app'
 import {

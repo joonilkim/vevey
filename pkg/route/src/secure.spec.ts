@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { CloudFrontResponseEvent } from 'aws-lambda'
-import { handler, securityHeaders } from '../src/withSecurity'
+import { handler, securityHeaders } from '../src/secure'
 import * as data from './cloudfront-response.json'
 
 // @see: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/lambda-event-structure.html

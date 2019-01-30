@@ -1,21 +1,49 @@
+root = ../..
+
+self = $(shell basename $(shell pwd))
+mocha = ${root}/node_modules/.bin/mocha
+tsc = ${root}/node_modules/.bin/tsc
+
 test:
 	NODE_ENV=test \
-	mocha -r ts-node/register "src/**/*.spec.{ts,tsx}" --colors
+	${mocha} \
+		-r ts-node/register \
+		"src/**/*.spec.{ts,tsx}" --colors
 
-lambda.zip: $(shell find src) package.json yarn.lock
-	rm -rf build $@ && mkdir -p build && \
-	tsc --build tsconfig.build.json && \
-	cp package.json yarn.lock build/ &&  \
-	cd build && yarn install --prod --pure-lockfile && \
-	rm -rf yarn.lock node_modules/aws-sdk && \
-	zip -rq ../$@ *
+docker-build: $(shell find src) package.json
+	docker-compose \
+		-f ${root}/support/docker-compose.yml \
+		build build
 
-deploy: lambda.zip
+docker-sh:
+	docker-compose \
+		-f ${root}/support/docker-compose.yml \
+		run --rm build bash
+
+package: docker-build
+	docker-compose \
+		-f ${root}/support/docker-compose.yml \
+		run --rm build \
+		"cd /build/pkg/${self} && make lambda.zip && mv lambda.zip /repo/pkg/${self}"
+
+lambda.zip: node_modules
+	zip -rq $@ package.json dist node_modules
+
+node_modules: compile
+	yarn install \
+		--prod --frozen-lockfile && \
+	rm -rf node_modules/aws-sdk
+
+compile: clean
+	@ (yarn install --frozen-lockfile && \
+		${tsc} -b .)
+
+deploy:
 	test ${function_name} && \
 	aws lambda update-function-code \
 		--function-name ${function_name} \
-		--zip-file fileb://${abspath $<}\
+		--zip-file fileb://${abspath lambda.zip}\
 		--publish
 
 clean:
-	rm -rf build dist.zip
+	rm -rf dist

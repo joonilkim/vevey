@@ -59,19 +59,13 @@ resource "aws_lambda_function" "_" {
   source_code_hash = "${base64sha256(file("${local.target}/${local.dist}"))}"
 
   function_name = "${replace("with_security.${var.domain}",".","-")}"
-  handler       = "withSecurity.handler"
+  handler       = "dist/secure.handler"
   runtime       = "nodejs8.10"
   publish       = true
   role          = "${aws_iam_role._.arn}"
 
   memory_size   = 512
   timeout       = 3
-
-  environment {
-    variables = {
-      NODE_ENV = "production"
-    }
-  }
 
   # Lambda@Edge function must be located in us-east-1
   provider      = "aws.virginia"

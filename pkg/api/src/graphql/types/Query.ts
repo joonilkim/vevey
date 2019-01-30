@@ -1,6 +1,6 @@
 import * as assert from 'assert-err'
+import { Forbidden } from '@vevey/common'
 import { Context } from '../../Context'
-import { Forbidden } from '../errors'
 
 export const schema = `
   type Query {
