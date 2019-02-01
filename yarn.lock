@@ -2780,6 +2780,7 @@ shell-quote@^1.6.1:
 short-uuid@^3.1.0:
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/short-uuid/-/short-uuid-3.1.0.tgz#ee01b6eda16e436c60b7b9c1c395621811f37d3e"
+  integrity sha512-rE1ha17HP7otN1vywYfo7zeHD0jrvSh2KbrCWK3aVVNREAdPaEGFHPtC6hg4NkFpqK815n7ffsWgroqhWWq/Jw==
   dependencies:
     any-base "^1.1.0"
     uuid "^3.2.1"

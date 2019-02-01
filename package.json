@@ -11,6 +11,7 @@
   "scripts": {
     "test:route": "cd pkg/route && yarn run test",
     "test:api": "cd pkg/api && yarn run test",
+    "test:auth": "cd pkg/auth && yarn run test",
     "test": "run-p test:*"
   },
   "engines": {
@@ -23,7 +24,8 @@
     "nohoist": [
       "**/route/**",
       "**/web/**",
-      "**/api/**"
+      "**/api/**",
+      "**/auth/**"
     ]
   },
   "// 1": "Put language specific dependencies here",

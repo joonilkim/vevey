@@ -1,9 +1,18 @@
+module "auth" {
+  source    = "../pkg/auth/module"
+
+  domain    = "${var.domain}"
+  region    = "${var.region}"
+  stage     = "${var.stage}"
+}
+
 module "api" {
   source    = "../pkg/api/module"
 
   domain    = "${var.domain}"
   region    = "${var.region}"
   stage     = "${var.stage}"
+
   dynamodb_prefix = "${var.dynamodb_prefix}"
 }
 
