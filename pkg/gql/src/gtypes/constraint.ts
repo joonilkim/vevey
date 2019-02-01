@@ -63,7 +63,7 @@ const validators = {
     assert(
       typeof val === 'string' && new RegExp(arg).test(val),
       ValidationError,
-      `${fieldName} must match ${arg}`)
+      `${fieldName} has invalid format`)
   },
 
 }
