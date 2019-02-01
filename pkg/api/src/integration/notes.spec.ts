@@ -1,4 +1,5 @@
-import { expect } from 'chai'
+import * as chai from 'chai'
+import * as chaiAsPromised from 'chai-as-promised'
 import { times } from '@vevey/common'
 import { Note } from '../models/Note'
 import app from '../app'
@@ -7,9 +8,11 @@ import {
   randInt,
   randStr,
   dropTables,
-  requireError,
   throwIfError,
 } from './helper.spec'
+
+chai.use(chaiAsPromised);
+chai.should()
 
 interface Obj { [_: string]: any }
 
@@ -52,6 +55,7 @@ const createRequest = (userId, { contents }) => {
   return request(app)
     .set(headers)
     .send({ query })
+    .then(r => throwIfError(r))
 }
 
 const updateRequest = (userId, id, { contents, pos }) => {
@@ -70,11 +74,14 @@ const updateRequest = (userId, id, { contents, pos }) => {
   return request(app)
     .set(headers)
     .send({ query: updateQuery })
+    .then(r => throwIfError(r))
 }
 
 const deleteRequest = (userId, id) => {
     const deleteQuery = `mutation {
-      deleteNote(id: "${id}")
+      deleteNote(id: "${id}"){
+        result
+      }
     }`
 
   const headers = userId ? { Authorization: userId } : {}
@@ -82,6 +89,7 @@ const deleteRequest = (userId, id) => {
   return request(app)
     .set(headers)
     .send({ query: deleteQuery })
+    .then(r => throwIfError(r))
 }
 
 const getRequest = (userId, id) => {
@@ -97,6 +105,7 @@ const getRequest = (userId, id) => {
   return request(app)
     .set(headers)
     .send({ query })
+    .then(r => throwIfError(r))
 }
 
 const listRequest = (userId, limit) => {
@@ -105,7 +114,9 @@ const listRequest = (userId, limit) => {
       userId: "${userId}"
       limit: ${limit}
     ) {
-      ${NoteFields.join('\n')}
+      items {
+        ${NoteFields.join('\n')}
+      }
     }
   }`
 
@@ -114,6 +125,7 @@ const listRequest = (userId, limit) => {
   return request(app)
     .set(headers)
     .send({ query })
+    .then(r => throwIfError(r))
 }
 
 describe('Note', () => {
@@ -125,18 +137,14 @@ describe('Note', () => {
     // create
     const contents = randStr()
     const created: Obj = await createRequest(userId, { contents })
-      .then(r => throwIfError(r))
       .then(r => r.body.data.createNote)
 
     NoteFields.forEach(f =>
-      expect(created)
-        .to.have.property(f)
-        .to.be.exist
-    )
+      created.should.have.property(f).to.be.exist)
 
     // require login
     await createRequest(null, { contents })
-      .then(r => requireError('Unauthorized')(r))
+      .should.be.rejectedWith('Unauthorized')
 
     // update
     const toUpdate = {
@@ -144,25 +152,24 @@ describe('Note', () => {
       pos: new Date().getTime(),
     }
     const updated: Obj = await updateRequest(userId, created.id, toUpdate)
-      .then(r => throwIfError(r))
       .then(r => r.body.data.updateNote)
 
     NoteFields.forEach(f =>
-      expect(updated).to.have.property(f).to.be.exist)
+      updated.should.have.property(f).to.be.exist)
 
-    expect(updated.contents).to.be.equal(toUpdate.contents)
-    expect(updated.pos).to.be.equal(toUpdate.pos)
-    expect(new Date(updated.updatedAt))
-      .to.be.above(new Date(created.updatedAt))
+    updated.contents.should.be.equal(toUpdate.contents)
+    updated.pos.should.be.equal(toUpdate.pos)
+    new Date(updated.updatedAt)
+      .should.be.above(new Date(created.updatedAt))
 
     // require login
     await updateRequest(null, created.id, toUpdate)
-      .then(r => requireError('Unauthorized')(r))
+      .should.be.rejectedWith('Unauthorized')
 
     // require owner
     const notMe = randStr()
     await updateRequest(notMe, created.id, toUpdate)
-      .then(r => requireError('Forbidden')(r))
+      .should.be.rejectedWith('Forbidden')
   })
 
   it('should delete a note', async () => {
@@ -170,17 +177,18 @@ describe('Note', () => {
 
     const created: Obj = await seeding(userId)
 
-    await deleteRequest(userId, created.id)
-      .then(r => throwIfError(r))
+    const r = await deleteRequest(userId, created.id)
+    r.body.data.deleteNote
+      .should.have.property('result', true)
 
     const note = await Note.get({ id: created.id })
 
-    expect(note).to.have.property('id', created.id)
-    expect(note).to.not.have.property('contents')
+    note.should.have.property('id', created.id)
+    note.should.not.have.property('contents')
 
     // require login
     await deleteRequest(null, created.id)
-      .then(r => requireError('Unauthorized')(r))
+      .should.be.rejectedWith('Unauthorized')
   })
 
   it('should get list', async () => {
@@ -190,33 +198,31 @@ describe('Note', () => {
     await seeding(userId, 10)
 
     const notes = await listRequest(userId, limit)
-      .then(r => throwIfError(r))
-      .then(r => r.body.data.userNotes)
+      .then(r => r.body.data.userNotes.items)
 
-    expect(notes).to.be.length(limit)
+    notes.should.be.length(limit)
 
     // requires login
     await listRequest(null, limit)
-      .then(r => requireError('Unauthorized')(r))
+      .should.be.rejectedWith('Unauthorized')
 
     // constraint check
     await listRequest(userId, -1)
-      .then(r => requireError('ValidationError')(r))
+      .should.be.rejectedWith('ValidationError')
 
     await listRequest(userId, 10000)
-      .then(r => requireError('ValidationError')(r))
+      .should.be.rejectedWith('ValidationError')
 
     // should filter deleted one
     const toDelete = notes[0].id
     await deleteRequest(userId, toDelete)
 
-    const notes2 = await listRequest(userId, limit)
-      .then(r => throwIfError(r))
-      .then(r => r.body.data.userNotes)
+    const moreNotes= await listRequest(userId, limit)
+      .then(r => r.body.data.userNotes.items)
 
-    expect(notes2).to.be.length(limit)
-    notes2.forEach(note =>
-      expect(note.id).to.be.not.eq(toDelete))
+    moreNotes.should.be.length(limit)
+    moreNotes.forEach(note =>
+      note.id.should.not.eq(toDelete))
   })
 
   it('should get a note', async () => {
@@ -225,27 +231,25 @@ describe('Note', () => {
     const created: Obj = await seeding(userId)
 
     const note = await getRequest(userId, created.id)
-      .then(r => throwIfError(r))
       .then(r => r.body.data.note)
 
     NoteFields.forEach(f =>
-      expect(note).to.have.property(f).to.be.exist)
+      note.should.have.property(f).to.be.exist)
 
-    expect(note).to.have.property('id', created.id)
-    expect(note).to.have.property('contents', created.contents)
+    note.should.have.property('id', created.id)
+    note.should.have.property('contents', created.contents)
 
     // requires login
     await getRequest(null, created.id)
-      .then(r => requireError('Unauthorized')(r))
+      .should.be.rejectedWith('Unauthorized')
 
     // should filter deleted one
     await deleteRequest(userId, created.id)
 
     const data = await getRequest(userId, created.id)
-      .then(r => throwIfError(r))
       .then(r => r.body.data)
 
-    expect(data).to.have.property('note').to.be.not.exist
+    data.should.have.property('note').to.be.not.exist
   })
 
 })

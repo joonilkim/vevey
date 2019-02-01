@@ -1,6 +1,6 @@
 import * as assert from 'assert-err'
 import { Forbidden } from '@vevey/common'
-import { Context } from '../../Context'
+import { Context } from '../Context'
 
 export const schema = `
   type Query {
@@ -10,11 +10,15 @@ export const schema = `
       userId: ID!
       pos: Integer = ${Number.MAX_SAFE_INTEGER}
       limit: Int! @constraint(min: 1, max: 30)
-    ): [Note!]! @auth
+    ): NotePagination! @auth
 
     note(
       id: ID!
     ): Note @auth
+  }
+
+  type NotePagination {
+    items: [Note!]!
   }
 `
 
@@ -40,6 +44,8 @@ function userNotes(
     .limit(limit)
     .descending()
     .exec()
+    .then(pagination)
+
 }
 
 function note(
@@ -62,4 +68,4 @@ function note(
     .then(requirePermission)
 }
 
-
+const pagination = (items: []) => ({ items })

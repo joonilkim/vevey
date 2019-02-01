@@ -1,4 +1,3 @@
-import { inspect } from 'util'
 import * as _request from 'supertest'
 import { PromiseAll } from '@vevey/common'
 import dynamoose from '../connectors/dynamoose'
@@ -46,13 +45,6 @@ export const print = data => {
 export const throwIfError = r => {
   if(!r.body.errors)
     return r
-  throw new Error(r.body.errors[0].message)
-}
-
-export const requireError = code => r => {
-  if(r.body.errors && r.body.errors.find(e => e.code === code))
-    return r
-
-  const msg = r.body.errors ? inspect(r.body.errors, false, null) : '{}'
-  throw new Error(`Expected: ${inspect({ code })}, but got: ${msg}`)
+  const code = r.body.errors[0]['code'] || 'Error'
+  throw new Error(`${code}: ${r.body.errors[0].message}`)
 }

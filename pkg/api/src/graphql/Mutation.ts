@@ -1,6 +1,37 @@
 import { generate as generateUUID } from 'short-uuid'
 import { pickBy, Forbidden, wrapError } from '@vevey/common'
-import { Context } from '../../Context'
+import { Context } from '../Context'
+
+export const schema = `
+  type Mutation {
+
+    createNote(
+      contents: String! @constraint(minLength: 1)
+    ): Note @auth
+
+    updateNote(
+      id: ID!
+      contents: String! @constraint(minLength: 1)
+      pos: Integer
+    ): Note @auth
+
+    deleteNote(
+      id: ID!
+    ): MutationResponse! @auth
+  }
+
+  type MutationResponse {
+    result: Boolean!
+  }
+`
+
+export const resolvers = {
+  Mutation: {
+    createNote,
+    updateNote,
+    deleteNote,
+  }
+}
 
 function createNote(
   _,
@@ -58,33 +89,6 @@ function deleteNote(
 
   // @ts-ignore
   return Note.update(key, { $DELETE: toDelete }, condition)
-    .then(() => null)
+    .then(() => ({ result: true }))
     .catch(requirePermission)
-}
-
-export const schema = `
-  type Mutation {
-
-    createNote(
-      contents: String! @constraint(minLength: 1)
-    ): Note @auth
-
-    updateNote(
-      id: ID!
-      contents: String! @constraint(minLength: 1)
-      pos: Integer
-    ): Note @auth
-
-    deleteNote(
-      id: ID!
-    ): Boolean @auth
-  }
-`
-
-export const resolvers = {
-  Mutation: {
-    createNote,
-    updateNote,
-    deleteNote,
-  }
 }
