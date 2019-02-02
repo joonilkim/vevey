@@ -6,6 +6,7 @@ tsc = ${root}/node_modules/.bin/tsc
 
 test:
 	NODE_ENV=test \
+	TS_NODE_FILES=true \
 	${mocha} -r ts-node/register \
 		"src/**/*.spec.{ts,tsx}" --colors
 
@@ -35,7 +36,7 @@ node_modules: compile
 
 compile: clean
 	@ (yarn install --frozen-lockfile && \
-		${tsc} -b .)
+		${tsc} -b tsconfig.build.json)
 
 deploy:
 	test ${function_name} && \

@@ -1,8 +1,26 @@
-import { promisify } from 'util'
 import * as fs from 'fs'
 
-export function PromiseAll<T>(promises: Promise<T>[]): Promise<T[]>{
-  return Promise.all<T>(
+
+export const curly = <T>(fn: (T) => any): (T) => T => {
+  return (obj: T) => {
+    fn(obj)
+    return obj
+  }
+}
+
+export function promisify(fn) {
+  return function(...args){
+    return new Promise((res, rej) => {
+      const done = (er, r) => er ? rej(er) : res(r)
+      fn.apply(this, [...args, done])
+    })
+  }
+}
+
+export function PromiseAll(
+  promises: Array<Promise<any>>
+): Promise<any[]>{
+  return Promise.all(
     promises.map(p => p.catch(e => e))
   ).then(arr => {
     arr.forEach(e => {
@@ -34,7 +52,7 @@ export const when = (x?) => ({
 })
 
 export const pickBy = (o, pred) => {
-  let r = {}
+  const r = {}
   Object.entries(o).forEach(([k, v]) => {
     if(pred(v, k)){
       r[k] = v
@@ -44,7 +62,7 @@ export const pickBy = (o, pred) => {
 }
 
 export const omitBy = (o, pred) => {
-  let r = {}
+  const r = {}
   Object.entries(o).forEach(([k, v]) => {
     if(!pred(v, k)){
       r[k] = v

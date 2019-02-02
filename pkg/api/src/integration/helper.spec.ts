@@ -11,31 +11,9 @@ export const randInt = (max=10000, min=0) =>
 
 export const request = app =>
   _request(app)
-    .post('/api/gql')
+    .post('/gql')
     .set('x-apigateway-event', '{}')
     .set('x-apigateway-context', '{}')
-
-export const dropTables = tableNames => {
-  const db = dynamoose.ddb()
-  const prefix = process.env.DYNAMODB_PREFIX || ''
-
-  const ignoreNotFound = er => {
-    if(er.code === 'ResourceNotFoundException') return
-    throw er
-  }
-
-  const drop = tableName =>
-    db.deleteTable({
-      TableName: prefix + tableName
-    })
-    .promise()
-    .catch(ignoreNotFound)
-
-  return PromiseAll(
-    Object
-      .values(tableNames)
-      .map(drop))
-}
 
 export const print = data => {
   console.info(data)
@@ -48,3 +26,29 @@ export const throwIfError = r => {
   const code = r.body.errors[0]['code'] || 'Error'
   throw new Error(`${code}: ${r.body.errors[0].message}`)
 }
+
+export const truncate = (Model, keys) =>
+  Model.scan()
+    .attributes(keys)
+    .all()
+    .exec()
+    .then(Model.batchDelete)
+
+export const dropTables = tableNames => {
+  const db = dynamoose.ddb()
+
+  const ignoreNotFound = er => {
+    if(er.code === 'ResourceNotFoundException') return
+    throw er
+  }
+
+  const drop = tableName =>
+    db.deleteTable({ TableName: tableName })
+      .promise()
+      .catch(ignoreNotFound)
+
+  return PromiseAll(
+    Object.values(tableNames)
+      .map(drop))
+}
+

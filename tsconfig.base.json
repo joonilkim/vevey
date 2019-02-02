@@ -2,6 +2,9 @@
   "compilerOptions": {
     "alwaysStrict": true,
     "baseUrl": ".",
+    "paths": {
+      "*": [ "src/typings/*" ]
+    },
     "lib": [
       "es2017",
       "es2018.promise",
@@ -9,9 +12,6 @@
     ],
     "module": "commonjs",
     "moduleResolution": "node",
-    "paths": {
-      "*": [ "src/typings" ]
-    },
     "noUnusedLocals": true,
     "resolveJsonModule": true
   }

@@ -1,8 +1,7 @@
-import * as assert from 'assert-err'
 import { Context } from '../Context'
 import {
+  BadRequest,
   ValidationError,
-  Conflict,
   wrapError
 } from '@vevey/common'
 
@@ -15,20 +14,33 @@ export const schema = `
 
     confirmSignUp(
       email: String!
-      inviteCode: String!
-      newPassword: String!
+      name: String!
+      code: String!
+      newPwd: String!
     ): MutationResponse!
 
+    login(
+      email: String!
+      pwd: String!
+    ): Token!
   }
 
   type MutationResponse {
     result: Boolean!
+  }
+
+  type Token {
+    accessToken: String!
+    expiresIn: Integer!
+    refreshToken: String!
   }
 `
 
 export const resolvers = {
   Mutation: {
     inviteMe,
+    confirmSignUp,
+    login,
   }
 }
 
@@ -37,49 +49,57 @@ function inviteMe(
   { email },
   { User }: Context,
 ) {
-  const nickname = extractNameFromEmail(email)
-  assert(!!nickname, ValidationError, `Invalid email: ${email}`)
+  const suppressConflict = er => {
+    if(er.code === 'Conflict') return {}
+    throw er
+  }
 
-  return User.invite({
-    email, nickname
-  }).then(() => ({ result: true }))
-    .catch(er => handleError(er))
+  return User.invite({ email })
+    .catch(suppressConflict)
+    .then(
+      successResponse,
+      er => handleError(er))
 }
 
-/*
 function confirmSignUp(
   _,
-  { email, inviteCode, newPassword },
+  { email, name, code, newPwd },
   { User }: Context,
 ) {
   return User.confirmSignUp({
-    email, inviteCode, newPassword
+    email, name, code, newPwd,
   })
-  .then(_ => ({ result: true }))
-  .catch(er => {
-    if (er.code === 'AliasExistsException' ||
-        er.code === 'UsernameExistsException')
-      throw new Conflict(`Already registered email: ${email}`)
-    throw er
-  })
+  .then(successResponse)
 }
 
-function extractNameFromEmail(email){
-  const match = /(.+)@/.exec(email)
-  return match && match[1]
+function login(
+  _,
+  { email, pwd },
+  { User, Token }: Context,
+) {
+  const shouldExists = (user?) => {
+    if(user && user.id)
+      return user
+    throw BadRequest(`Invalid email or password`)
+  }
+
+  return User.findByEmail(email)
+    .then(shouldExists)
+    .then(({ id }) => User.getUserByPwd(id, pwd))
+    .then(user => Token.create({ id: user.id }))
 }
-*/
 
 function handleError(er){
-  if (er.code === 'AliasExistsException' ||
-      er.code === 'UsernameExistsException')
-    throw wrapError(er, Conflict)
+  if (er.name === 'ValidationError') {
+    throw wrapError(er, ValidationError)
+  }
 
-  // Don't wrap here
+  // Don't wrap to pass throw vevey errors
   throw er
 }
 
-const extractNameFromEmail = email => {
-  const match = /(.+)@/.exec(email)
-  return match && match[1]
+const successResponse = createResponse(true)
+
+function createResponse(success){
+  return () => ({ result: success })
 }

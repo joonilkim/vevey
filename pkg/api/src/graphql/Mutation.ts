@@ -58,15 +58,9 @@ function updateNote(
     conditionValues: { userId: me.id },
   }
 
-  const requirePermission = er => {
-    if(er.code === 'ConditionalCheckFailedException')
-      throw wrapError(er, Forbidden)
-    throw er
-  }
-
   // @ts-ignore
   return Note.update(key, toUpdate, condition)
-    .catch(requirePermission)
+    .catch(er => handleError(er))
 }
 
 function deleteNote(
@@ -81,14 +75,20 @@ function deleteNote(
     conditionValues: { userId: me.id },
   }
 
-  const requirePermission = er => {
-    if(er.code === 'ConditionalCheckFailedException')
-      throw wrapError(er, Forbidden)
-    throw er
-  }
-
   // @ts-ignore
   return Note.update(key, { $DELETE: toDelete }, condition)
-    .then(() => ({ result: true }))
-    .catch(requirePermission)
+    .then(
+      () => ({ result: true }),
+      er => handleError(er))
 }
+
+function handleError(er){
+  if (er.code === 'ConditionalCheckFailedException') {
+    throw wrapError(er, Forbidden)
+  }
+
+  // Don't wrap to pass throw vevey errors
+  throw er
+}
+
+

@@ -7,14 +7,15 @@ import { Context } from './Context'
 const { auth, graphqlHttp, logger } = gql.express
 
 
-export default function() {
+export function router() {
   const env = process.env.NODE_ENV || 'development'
+  const secret = process.env.TOKEN_SECRET || 'mytokensecret'
 
   const router = express.Router()
 
   router.use(logger({ env }))
 
-  router.use(auth())
+  router.use(auth({ secret }))
 
   //// grapql ////
 

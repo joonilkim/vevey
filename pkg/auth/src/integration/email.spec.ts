@@ -1,16 +1,15 @@
-// @ts-ignore
-import { inspect } from 'util'
 import * as chai from 'chai'
 import * as chaiAsPromised from 'chai-as-promised'
 import { PromiseAll } from '@vevey/common'
-import { createCognito } from '../connectors/Cognito'
 import { User } from '../models/User'
-import app from '../app'
+import { Token } from '../models/Token'
+import { app } from '../app'
 import {
   // @ts-ignore
   print,
   throwIfError,
   request,
+  truncate,
 } from './helper.spec'
 
 const invite = ({ email }) => {
@@ -27,13 +26,15 @@ const invite = ({ email }) => {
     .then(r => throwIfError(r))
 }
 
-// @ts-ignore
-const confirmSignUp = ({ email, inviteCode, newPassword }) => {
+const confirmSignUp = (
+  { email, name, code, newPwd }
+) => {
   const query = `mutation {
     confirmSignUp(
       email: "${email}"
-      inviteCode: "${inviteCode}"
-      newPassword: "${newPassword}"
+      name: "${name}"
+      code: "${code}"
+      newPwd: "${newPwd}"
     ){
       result
     }
@@ -44,46 +45,84 @@ const confirmSignUp = ({ email, inviteCode, newPassword }) => {
     .then(r => throwIfError(r))
 }
 
-describe('email', function(){
+const login = (
+  { email, pwd }
+) => {
+  const query = `mutation {
+    login(
+      email: "${email}"
+      pwd: "${pwd}"
+    ){
+      accessToken,
+      expiresIn,
+      refreshToken,
+    }
+  }`
+
+  return request(app)
+    .send({ query })
+    .then(r => throwIfError(r))
+}
+
+
+describe('User', function(){
   this.timeout(10000)
   chai.use(chaiAsPromised);
   chai.should()
 
-  const wrongEmail = 'wrong@email'
-
-  const testEmail = process.env.TEST_EMAIL
-    || 'success@simulator.amazonses.com'
-
-  const model= new User(createCognito())
-
-  const deleteUser = email => {
-    return model.findByEmail(email)
-      .then(user => user && model.deleteUser(user.id))
+  const testUser = {
+    email: process.env.TEST_EMAIL || 'success@simulator.amazonses.com',
+    pwd: 'testpasS1!',
+    name: 'testuser',
   }
 
-  afterEach(() => {
-    const toDel = [testEmail, wrongEmail]
-    return PromiseAll(toDel.map(deleteUser))
-  })
+  describe('Signup', () => {
 
-  it('should send invitation', async function(){
-    const email = testEmail
+    beforeEach(async () => {
+      await PromiseAll([
+        truncate(User.Model, ['id']),
+        truncate(Token.Model, ['userId', 'token'])
+      ])
+    })
 
-    const r = await invite({ email })
-    r.body.data.inviteMe
-      .should.have.property('result', true)
+    it('should signup', async () => {
+      const email = testUser.email
 
-    const created = await model.findByEmail(email)
-    created.should.have.property('email', email)
+      const x = await User.findByEmail(email)
+      if(x) throw new Error(JSON.stringify(x))
 
-    // raise Error if already existed email
-    await invite({ email })
-      .should.be.rejectedWith('Conflict')
-  })
+      const r = await invite({ email })
+      r.body.data.inviteMe
+        .should.have.property('result', true)
 
-  it('should not send to invalid address', async function(){
-    await invite({ email: wrongEmail })
-      .should.be.rejectedWith('ValidationError')
-  })
+      const created = await User.findByEmail(email)
+      created.should.have.property('email', email)
+      created.should.have.nested.property('confirmCode.code')
+      created.should.have.nested.property('confirmCode.exp')
+
+      const user = {
+        email,
+        name: testUser.name,
+        code: created.confirmCode.code,
+        newPwd: testUser.pwd,
+      }
+      const resp = await confirmSignUp(user)
+        .then(r => r.body.data.confirmSignUp)
+      resp.should.have.property('result', true)
+
+      const { pwd } = testUser
+      const t = await login({ email, pwd })
+        .then(r => r.body.data.login)
+
+      t.should.have.property('accessToken')
+      t.should.have.property('refreshToken')
+      t.should.have.property('expiresIn')
+    })
+
+    it('should not be invited with invalid email', async () => {
+      await invite({ email: 'aa@invalid'})
+        .should.be.rejectedWith('ValidationError')
+    })
+  }) // describe
 
 })

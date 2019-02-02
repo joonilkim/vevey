@@ -1,20 +1,29 @@
 import * as chai from 'chai'
 import * as chaiAsPromised from 'chai-as-promised'
-import { times } from '@vevey/common'
+import * as express from 'express'
+import * as jwt from 'jsonwebtoken'
+import { PromiseAll, times } from '@vevey/common'
 import { Note } from '../models/Note'
-import app from '../app'
+import { router } from '../router'
 import {
+  // @ts-ignore
+  print,
   request,
   randInt,
   randStr,
-  dropTables,
+  truncate,
   throwIfError,
 } from './helper.spec'
 
-chai.use(chaiAsPromised);
-chai.should()
-
 interface Obj { [_: string]: any }
+
+//// Create App ////
+
+process.env.TOKEN_SECRET = 'testtokensecret'
+const secret = process.env.TOKEN_SECRET
+const app = express()
+app.use(router())
+
 
 const NoteFields = [
   'id', 'userId',
@@ -50,7 +59,9 @@ const createRequest = (userId, { contents }) => {
     }
   }`
 
-  const headers = userId ? { Authorization: userId } : {}
+  const headers = userId ? ({
+    Authorization: jwt.sign({ id: userId }, secret)
+  }) : {}
 
   return request(app)
     .set(headers)
@@ -69,7 +80,9 @@ const updateRequest = (userId, id, { contents, pos }) => {
     }
   }`
 
-  const headers = userId ? { Authorization: userId } : {}
+  const headers = userId ? ({
+    Authorization: jwt.sign({ id: userId }, secret)
+  }) : {}
 
   return request(app)
     .set(headers)
@@ -84,7 +97,9 @@ const deleteRequest = (userId, id) => {
       }
     }`
 
-  const headers = userId ? { Authorization: userId } : {}
+  const headers = userId ? ({
+    Authorization: jwt.sign({ id: userId }, secret)
+  }) : {}
 
   return request(app)
     .set(headers)
@@ -99,8 +114,9 @@ const getRequest = (userId, id) => {
     }
   }`
 
-
-  const headers = userId ? { Authorization: userId } : {}
+  const headers = userId ? ({
+    Authorization: jwt.sign({ id: userId }, secret)
+  }) : {}
 
   return request(app)
     .set(headers)
@@ -120,7 +136,9 @@ const listRequest = (userId, limit) => {
     }
   }`
 
-  const headers = userId ? { Authorization: userId } : {}
+  const headers = userId ? ({
+    Authorization: jwt.sign({ id: userId }, secret)
+  }) : {}
 
   return request(app)
     .set(headers)
@@ -128,8 +146,16 @@ const listRequest = (userId, limit) => {
     .then(r => throwIfError(r))
 }
 
-describe('Note', () => {
-  beforeEach(() => dropTables([Note['$__']['name']]))
+describe('Note', function(){
+  this.timeout(10000)
+  chai.use(chaiAsPromised);
+  chai.should()
+
+  beforeEach(async () => {
+    await PromiseAll([
+      truncate(Note, ['id']),
+    ])
+  })
 
   it('should create and update', async () => {
     const userId = randStr()
@@ -249,7 +275,7 @@ describe('Note', () => {
     const data = await getRequest(userId, created.id)
       .then(r => r.body.data)
 
-    data.should.have.property('note').to.be.not.exist
+    data.should.have.property('note', null)
   })
 
 })

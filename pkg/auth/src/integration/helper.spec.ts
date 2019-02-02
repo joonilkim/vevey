@@ -1,4 +1,6 @@
 import * as _request from 'supertest'
+import { PromiseAll } from '@vevey/common'
+import { dynamoose } from '../connectors/dynamoose'
 
 
 export const randStr = () =>
@@ -19,8 +21,32 @@ export const print = data => {
 }
 
 export const throwIfError = r => {
-  if(!r.body.errors)
-    return r
+  if(!r.body.errors) return r
+
   const code = r.body.errors[0]['code'] || 'Error'
   throw new Error(`${code}: ${r.body.errors[0].message}`)
 }
+
+export const dropTables = tableNames => {
+  const db = dynamoose.ddb()
+
+  const ignoreNotFound = er => {
+    if(er.code === 'ResourceNotFoundException') return
+    throw er
+  }
+
+  const drop = tableName =>
+    db.deleteTable({ TableName: tableName })
+      .promise()
+      .catch(ignoreNotFound)
+
+  return PromiseAll(
+    Object.values(tableNames).map(drop))
+}
+
+export const truncate = (Model, keys) =>
+  Model.scan()
+    .attributes(keys)
+    .all()
+    .exec()
+    .then(Model.batchDelete)

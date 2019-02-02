@@ -2,31 +2,32 @@ import * as AWS from 'aws-sdk'
 import * as express from 'express'
 import * as gql from '@vevey/gql'
 import { schema } from './graphql'
-import { User } from './models/User'
+import * as User from './models/User'
+import * as Token from './models/Token'
 import { Context } from './Context'
-import { createCognito } from './connectors/Cognito'
 
 const { auth, graphqlHttp, logger } = gql.express
 
 
-export default function() {
+export function router() {
   const env = process.env.NODE_ENV || 'development'
+  const secret = process.env.TOKEN_SECRET || 'mytokensecret'
+  const saltRound = Number(process.env.SALT_ROUND || '8')
 
   AWS.config.update({
     region: process.env.AWS_DEFAULT_REGION,
   })
 
-  const cognito = createCognito()
+  const router = express.Router()
 
   const models = {
-    User: new User(cognito),
+    User: User.createModel({ saltRound }),
+    Token: Token.createModel({ secret })
   }
-
-  const router = express.Router()
 
   router.use(logger({ env }))
 
-  router.use(auth())
+  router.use(auth({ secret }))
 
   //// grapql ////
 
@@ -40,14 +41,6 @@ export default function() {
     graphiql: env === 'development',
     createContext,
   }))
-
-  //// rest api ////
-
-  router.get('/users', (_, res) => {
-    res.json([
-      {id: 1, name: 'Joe'},
-    ])
-  })
 
   return router
 }

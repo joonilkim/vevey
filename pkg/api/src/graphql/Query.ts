@@ -57,8 +57,7 @@ function note(
     note && note.contents ? note : null
 
   const requirePermission = note => {
-    if(note)
-      assert(me.id === note.userId, Forbidden)
+    if(note) assert(me.id === note.userId, Forbidden)
     return note
   }
 

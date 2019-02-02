@@ -5,11 +5,11 @@ import {
   Context,
 } from 'aws-lambda'
 
-import app from './app'
+import { app } from './app'
 
 export const server = awsServerlessExpress.createServer(app)
 
-export const handler = function(
+export function handler(
   event: APIGatewayProxyEvent, context: Context
 ): Promise<APIGatewayProxyResult> {
   return awsServerlessExpress.proxy(

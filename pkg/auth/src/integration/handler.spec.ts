@@ -14,19 +14,6 @@ describe('handler', () => {
 
   after(() => server.close())
 
-  describe('should respond rest api', () => {
-    it('should be called', async () => {
-      const event = makeEvent({
-        path: '/api/users',
-      })
-
-      const res = await handler(event, <Context>{})
-      expect(res).to.have.property('statusCode', 200)
-      expect(res).to.have.property('body')
-      expect(res).to.have.property('headers')
-    })
-  })
-
   describe('should respond ping', () => {
     it('should be called', async () => {
       const event = makeEvent({

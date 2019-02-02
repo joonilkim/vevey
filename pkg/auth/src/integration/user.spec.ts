@@ -1,28 +1,29 @@
-/*
-// @ts-ignore
-import { inspect } from 'util'
 import * as chai from 'chai'
 import * as chaiAsPromised from 'chai-as-promised'
+import * as bcrypt from 'bcrypt'
 import { PromiseAll } from '@vevey/common'
-import { createCognito } from '../connectors/Cognito'
-import { Auth } from '../models/Auth'
-import app from '../app'
+import { User, UserStatus } from '../models/User'
+import { Token } from '../models/Token'
+import { app } from '../app'
 import {
   // @ts-ignore
   print,
   throwIfError,
   request,
+  truncate,
 } from './helper.spec'
 
-// @ts-ignore
-const confirmSignUp = ({ email, inviteCode, newPassword }) => {
+const login = (
+  { email, pwd }
+) => {
   const query = `mutation {
-    confirmSignUp(
+    login(
       email: "${email}"
-      inviteCode: "${inviteCode}"
-      newPassword: "${newPassword}"
+      pwd: "${pwd}"
     ){
-      result
+      accessToken,
+      expiresIn,
+      refreshToken,
     }
   }`
 
@@ -31,45 +32,50 @@ const confirmSignUp = ({ email, inviteCode, newPassword }) => {
     .then(r => throwIfError(r))
 }
 
-describe('user', function(){
+
+describe('User', function(){
   this.timeout(10000)
   chai.use(chaiAsPromised);
   chai.should()
 
   const testUser = {
-    email: 'success@simulator.amazonses.com',
-    nickname: 'testuser',
-    tempPassword: 'tempPass0)',
-    password: 'validPass1!',
+    email: process.env.TEST_EMAIL || 'success@simulator.amazonses.com',
+    pwd: 'testpasS1!',
+    name: 'testuser',
   }
 
-  const auth = new Auth(createCognito())
+  const saltRound = 8
 
-  const deleteUser = email => {
-    return auth.findUserByEmail(email)
-      .then(user => user && auth.deleteUser(user.id))
+  const createUser = ({ email, pwd, name }) => {
+    return new User({
+      email,
+      pwd: bcrypt.hashSync(pwd, saltRound),
+      name,
+      status: UserStatus.Confirmed,
+    }).model.save()
   }
 
-  beforeEach(() => {
-    const { email, nickname, tempPassword } = testUser
-    return auth.invite({ email, nickname, tempPassword })
-  })
+  describe('Login', () => {
 
-  afterEach(() => {
-    const toDel = [testUser.email]
-    return PromiseAll(toDel.map(deleteUser))
-  })
-
-  it('should signup', async function(){
-    const r = await confirmSignUp({
-      email: testUser.email,
-      inviteCode: testUser.tempPassword,
-      newPassword: testUser.password,
+    beforeEach(async () => {
+      await PromiseAll([
+        truncate(User.Model, ['id']),
+        truncate(Token.Model, ['userId', 'token'])
+      ])
+      await createUser(testUser)
     })
-    r.body.data.confirmSignUp
-      .should.have.property('result', true)
+
+    it('should login and logout', async () => {
+      const { email, pwd } = testUser
+      const r = await login({ email, pwd })
+        .then(r => r.body.data.login)
+
+      r.should.have.property('accessToken')
+      r.should.have.property('refreshToken')
+      r.should.have.property('expiresIn')
+    })
+
   })
 
 })
 
-*/

@@ -1,10 +1,12 @@
 import { User } from './models/User'
+import { Token } from './models/Token'
 
 interface Me {
-  id: String
+  id: string
 }
 
 interface Context {
   me: Me,
-  User: User,
+  User: typeof User,
+  Token: typeof Token,
 }
