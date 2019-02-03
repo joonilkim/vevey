@@ -9,10 +9,16 @@ class AuthDirective extends SchemaDirectiveVisitor {
     field._authWrapped = true
 
     const { resolve = defaultFieldResolver } = field
+    const role = this.args['role']
 
     field.resolve = function(...args){
       const me = (args[2]['me'] || {})['id']
-      assert(!!me, Unauthorized)
+      if(role === 'User') {
+        assert(!!me, Unauthorized)
+      }
+      if(role === 'Guest') {
+        assert(!me, Unauthorized)
+      }
 
       return resolve.apply(this, args)
     }
@@ -21,7 +27,15 @@ class AuthDirective extends SchemaDirectiveVisitor {
 }
 
 export const schema = `
-  directive @auth on FIELD_DEFINITION
+  enum AuthRole {
+    Any
+    User
+    Guest
+  }
+
+  directive @auth(
+    role: AuthRole = User
+  ) on FIELD_DEFINITION
 `
 
 export const directive = {
