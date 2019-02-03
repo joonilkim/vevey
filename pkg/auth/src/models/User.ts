@@ -137,15 +137,14 @@ export class User {
       throw new BadRequest('Invalid or Expired code')
     }
 
-    const updateUser = ({ user, hash }) => {
+    const updateUser = ({ user, hash }) =>
       Model.update({
         id: user.id
       }, {
         $PUT: { name, pwd: hash, status: UserStatus.Confirmed },
         $DELETE: { confirmCode: null },
       })
-      return user
-    }
+      .then(() => user)
 
     const withHash = user =>
       bcrypt.hash(newPwd, User.saltRound)
@@ -160,23 +159,21 @@ export class User {
       .then(returnVoid)
   }
 
-  static forgotPassword(email): Promise<ConfirmCode> {
+  static forgotPassword({ email }): Promise<ConfirmCode> {
     const shouldBeConfirmed = (user?) => {
       if(!user || user.status !== UserStatus.Confirmed)
-        // Not show exact message for security reason
-        throw new BadRequest()
+        throw new NotFound()
       return user
     }
 
     const confirmCode = {
       code: generateCode(),
-      exp: nowInSec() + User.inviteCodeExpiresIn
+      exp: nowInSec() + User.resetCodeExpiresIn
     }
 
-    const updateUser = user => {
+    const updateUser = user =>
       Model.update({ id: user.id }, { confirmCode })
-      return user
-    }
+        .then(() => user)
 
     return User.findByEmail(email)
       .then(shouldBeConfirmed)
@@ -185,12 +182,11 @@ export class User {
   }
 
   static confirmForgotPassword({
-    email, code, newPwd,
+    userId, code, newPwd,
   }): Promise<void> {
     const shouldBeConfirmed = (user?) => {
-      if(!(user && user.status === UserStatus.Confirmed))
-        // Not show exact message for security reason
-        throw new BadRequest()
+      if(!user || user.status !== UserStatus.Confirmed)
+        throw new NotFound()
       return user
     }
 
@@ -202,22 +198,21 @@ export class User {
       throw new BadRequest('Invalid or Expired code')
     }
 
-    const updateUser = ({ user, hash }) => {
+    const updateUser = ({ user, hash }) =>
       Model.update({
         id: user.id
       }, {
         $PUT: { pwd: hash },
         $DELETE: { confirmCode: null },
       })
-      return user
-    }
+      .then(() => user)
 
     const withHash = user =>
       bcrypt.hash(newPwd, User.saltRound)
         .then(hash => ({ user, hash }))
 
     shouldValidPassword(newPwd)
-    return User.findByEmail(email)
+    return Model.get({ id: userId })
       .then(shouldBeConfirmed)
       .then(verifyCode)
       .then(withHash)
@@ -263,10 +258,9 @@ export class User {
   }
 
   static changePassword(id, oldPwd, newPwd): Promise<void> {
-    const updateUser = ({ user, hash }) => {
+    const updateUser = ({ user, hash }) =>
       Model.update({ id: user.id }, { pwd: hash })
-      return user
-    }
+        .then(() => user)
 
     const withHash = user =>
       bcrypt.hash(newPwd, User.saltRound)

@@ -7,8 +7,7 @@ import { app } from '../app'
 import {
   // @ts-ignore
   print,
-  throwIfError,
-  request,
+  gqlRequest,
   truncate,
 } from './helper.spec'
 
@@ -20,10 +19,7 @@ function invite({ email }){
       result
     }
   }`
-
-  return request(app)
-    .send({ query })
-    .then(r => throwIfError(r))
+  return gqlRequest(app, query)
 }
 
 function confirmSignUp({ email, name, code, newPwd }) {
@@ -37,10 +33,7 @@ function confirmSignUp({ email, name, code, newPwd }) {
       result
     }
   }`
-
-  return request(app)
-    .send({ query })
-    .then(r => throwIfError(r))
+  return gqlRequest(app, query)
 }
 
 function login({ email, pwd }) {
@@ -54,10 +47,7 @@ function login({ email, pwd }) {
       refreshToken,
     }
   }`
-
-  return request(app)
-    .send({ query })
-    .then(r => throwIfError(r))
+  return gqlRequest(app, query)
 }
 
 

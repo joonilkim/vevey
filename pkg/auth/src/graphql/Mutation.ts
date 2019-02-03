@@ -1,8 +1,8 @@
-import * as assert from 'assert-err'
 import { Context } from '../Context'
 import {
-  Unauthorized,
   BadRequest,
+  Conflict,
+  NotFound,
 } from '@vevey/common'
 
 export const schema = `
@@ -10,24 +10,35 @@ export const schema = `
 
     inviteMe(
       email: String!
-    ): MutationResponse!
+    ): MutationResponse! @auth(role: Guest)
 
     confirmSignUp(
       email: String!
       name: String!
       code: String!
       newPwd: String!
-    ): MutationResponse!
+    ): MutationResponse! @auth(role: Guest)
 
     login(
       email: String!
       pwd: String!
-    ): Token!
+    ): Token! @auth(role: Guest)
 
     changePassword(
       oldPwd: String!
       newPwd: String!
-    ): MutationResponse!
+    ): MutationResponse! @auth(role: User)
+
+    forgotPassword(
+      email: String!
+    ): MutationResponse! @auth(role: Guest)
+
+    confirmForgotPassword(
+      userId: ID!
+      code: String!
+      newPwd: String!
+    ): MutationResponse! @auth(role: Guest)
+
   }
 
   type MutationResponse {
@@ -47,16 +58,18 @@ export const resolvers = {
     confirmSignUp,
     login,
     changePassword,
+    forgotPassword,
+    confirmForgotPassword,
   }
 }
 
 function inviteMe(
   _,
   { email },
-  { User }: Context,
+  { me, User }: Context,
 ) {
   const suppressConflict = er => {
-    if(er.code === 'Conflict') return {}
+    if(er instanceof Conflict) return {}
     throw er
   }
 
@@ -68,7 +81,7 @@ function inviteMe(
 function confirmSignUp(
   _,
   { email, name, code, newPwd },
-  { User }: Context,
+  { me, User }: Context,
 ) {
   return User.confirmSignUp({
     email, name, code, newPwd,
@@ -79,7 +92,7 @@ function confirmSignUp(
 function login(
   _,
   { email, pwd },
-  { User, Token }: Context,
+  { me, User, Token }: Context,
 ) {
   const shouldExists = (user?) => {
     if(user && user.id)
@@ -96,11 +109,41 @@ function login(
 function changePassword(
   _,
   { oldPwd, newPwd },
+  { me, User }: Context,
+) {
+  return User.changePassword(me.id, oldPwd, newPwd)
+    .then(returnSuccess)
+}
+
+function forgotPassword(
+  _,
+  { email },
   { me, User, Token }: Context,
 ) {
-  assert(!!me.id, Unauthorized)
+  // suppress exact message for security reason
+  const suppressNotFound = er => {
+    if(er instanceof NotFound) return {}
+    throw er
+  }
 
-  return User.changePassword(me.id, oldPwd, newPwd)
+  return User.forgotPassword({ email })
+    .catch(suppressNotFound)
+    .then(returnSuccess)
+}
+
+function confirmForgotPassword(
+  _,
+  { userId, code, newPwd },
+  { me, User, Token }: Context,
+) {
+  // suppress exact message for security reason
+  const suppressNotFound = er => {
+    if(er instanceof NotFound) return {}
+    throw er
+  }
+
+  return User.confirmForgotPassword({ userId, code, newPwd })
+    .catch(suppressNotFound)
     .then(returnSuccess)
 }
 

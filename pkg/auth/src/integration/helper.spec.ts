@@ -15,6 +15,16 @@ export const request = app =>
     .set('x-apigateway-event', '{}')
     .set('x-apigateway-context', '{}')
 
+export const gqlRequest = (app, query, token?) => {
+  const headers = token ?
+    { Authorization: token.accessToken } : {}
+
+  return request(app)
+    .set(headers)
+    .send({ query })
+    .then(r => throwIfError(r))
+}
+
 export const print = data => {
   console.info(data)
   return data

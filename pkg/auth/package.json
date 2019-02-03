@@ -10,6 +10,7 @@
   "license": "GPL-3.0",
   "private": true,
   "scripts": {
+    "upgrade-dep": "make upgrade-dep",
     "lint": "tslint src/**/*.ts",
     "dev": "make dev",
     "test": "make test",
