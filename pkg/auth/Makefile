@@ -1,1 +1,1 @@
-../../shared/Makefile
+../../support/Makefile

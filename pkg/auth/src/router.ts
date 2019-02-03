@@ -1,7 +1,7 @@
 import * as AWS from 'aws-sdk'
 import * as express from 'express'
 import * as gql from '@vevey/gql'
-import { schema } from './graphql'
+import { schema, wrapError } from './graphql'
 import * as User from './models/User'
 import * as Token from './models/Token'
 import { Context } from './Context'
@@ -40,6 +40,7 @@ export function router() {
     schema,
     graphiql: env === 'development',
     createContext,
+    wrapError,
   }))
 
   return router

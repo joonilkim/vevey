@@ -11,7 +11,7 @@
   "private": true,
   "scripts": {
     "lint": "tslint src/**/*.ts",
-    "dev": "nodemon",
+    "dev": "make dev",
     "test": "make test",
     "package": "make package"
   },

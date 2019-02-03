@@ -151,8 +151,8 @@ export class User {
       bcrypt.hash(newPwd, User.saltRound)
         .then(hash => ({ user, hash }))
 
-    return validatePassword(newPwd)
-      .then(() => User.findByEmail(email))
+    shouldValidPassword(newPwd)
+    return User.findByEmail(email)
       .then(shouldBeInvited)
       .then(verifyCode)
       .then(withHash)
@@ -216,8 +216,8 @@ export class User {
       bcrypt.hash(newPwd, User.saltRound)
         .then(hash => ({ user, hash }))
 
-    return validatePassword(newPwd)
-      .then(() => User.findByEmail(email))
+    shouldValidPassword(newPwd)
+    return User.findByEmail(email)
       .then(shouldBeConfirmed)
       .then(verifyCode)
       .then(withHash)
@@ -272,8 +272,8 @@ export class User {
       bcrypt.hash(newPwd, User.saltRound)
         .then(hash => ({ user, hash }))
 
-    return validatePassword(newPwd)
-      .then(() => User.getUserByPwd(id, oldPwd))
+    shouldValidPassword(newPwd)
+    return User.getUserByPwd(id, oldPwd)
       .then(withHash)
       .then(updateUser)
       .then(returnVoid)
@@ -289,7 +289,7 @@ export const createModel = options => {
   return User
 }
 
-async function validatePassword(pwd){
+function shouldValidPassword(pwd){
   if(!/^[a-zA-Z0-9!@#$%^&*()_+}{":;'?/>.<,]{8,}$/.test(pwd))
     throw new ValidationError(
       'Password must have at least 8 characters.')

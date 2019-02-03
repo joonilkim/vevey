@@ -13,9 +13,25 @@ import {
   truncate,
 } from './helper.spec'
 
-const login = (
-  { email, pwd }
-) => {
+const saltRound = 8
+
+function createUser ({ email, pwd, name }) {
+  return new User({
+    email,
+    pwd: bcrypt.hashSync(pwd, saltRound),
+    name,
+    status: UserStatus.Confirmed,
+  }).model.save()
+}
+
+function truncateAll() {
+  return PromiseAll([
+    truncate(User.Model, ['id']),
+    truncate(Token.Model, ['userId', 'token'])
+  ])
+}
+
+function login({ email, pwd }) {
   const query = `mutation {
     login(
       email: "${email}"
@@ -33,6 +49,22 @@ const login = (
 }
 
 
+function changePassword(token, { email, oldPwd, newPwd }){
+  const query = `mutation {
+    changePassword(
+      oldPwd: "${oldPwd}"
+      newPwd: "${newPwd}"
+    ){
+      result
+    }
+  }`
+
+  return request(app)
+    .set({ Authorization: token.accessToken })
+    .send({ query })
+    .then(r => throwIfError(r))
+}
+
 describe('User', function(){
   this.timeout(10000)
   chai.use(chaiAsPromised);
@@ -44,29 +76,15 @@ describe('User', function(){
     name: 'testuser',
   }
 
-  const saltRound = 8
+  describe('when login', () => {
+    const { email, pwd } = testUser
 
-  const createUser = ({ email, pwd, name }) => {
-    return new User({
-      email,
-      pwd: bcrypt.hashSync(pwd, saltRound),
-      name,
-      status: UserStatus.Confirmed,
-    }).model.save()
-  }
-
-  describe('Login', () => {
-
-    beforeEach(async () => {
-      await PromiseAll([
-        truncate(User.Model, ['id']),
-        truncate(Token.Model, ['userId', 'token'])
-      ])
+    before(async () => {
+      await truncateAll()
       await createUser(testUser)
     })
 
-    it('should login and logout', async () => {
-      const { email, pwd } = testUser
+    it('should pass', async () => {
       const r = await login({ email, pwd })
         .then(r => r.body.data.login)
 
@@ -75,6 +93,41 @@ describe('User', function(){
       r.should.have.property('expiresIn')
     })
 
+    it('should not pass with invalid password', async () => {
+      const pwd = 'invalidPass1!'
+      await login({ email, pwd })
+        .should.be.rejectedWith('Unauthorized')
+    })
+  })
+
+  describe('when change password', () => {
+    const { email, pwd } = testUser
+    const newPwd = 'Newpassword1!'
+
+    before(async () => {
+      await truncateAll()
+      await createUser(testUser)
+    })
+
+    it('should pass', async () => {
+      const token = await login({ email, pwd })
+        .then(r => r.body.data.login)
+
+      await changePassword(token, { email, oldPwd: pwd, newPwd })
+        .then(r => r.body.data.changePassword)
+        .should.eventually.have.property('result', true)
+    })
+
+    it('should not login with old one', async () => {
+      await login({ email, pwd })
+        .should.be.rejectedWith('Unauthorized')
+    })
+
+    it('should login with new one', async () => {
+      await login({ email, pwd: newPwd })
+        .then(r => r.body.data.login)
+        .should.eventually.have.property('accessToken')
+    })
   })
 
 })

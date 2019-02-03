@@ -1,8 +1,8 @@
+import * as assert from 'assert-err'
 import { Context } from '../Context'
 import {
+  Unauthorized,
   BadRequest,
-  ValidationError,
-  wrapError
 } from '@vevey/common'
 
 export const schema = `
@@ -23,6 +23,11 @@ export const schema = `
       email: String!
       pwd: String!
     ): Token!
+
+    changePassword(
+      oldPwd: String!
+      newPwd: String!
+    ): MutationResponse!
   }
 
   type MutationResponse {
@@ -41,6 +46,7 @@ export const resolvers = {
     inviteMe,
     confirmSignUp,
     login,
+    changePassword,
   }
 }
 
@@ -56,9 +62,7 @@ function inviteMe(
 
   return User.invite({ email })
     .catch(suppressConflict)
-    .then(
-      successResponse,
-      er => handleError(er))
+    .then(returnSuccess)
 }
 
 function confirmSignUp(
@@ -69,7 +73,7 @@ function confirmSignUp(
   return User.confirmSignUp({
     email, name, code, newPwd,
   })
-  .then(successResponse)
+    .then(returnSuccess)
 }
 
 function login(
@@ -89,16 +93,18 @@ function login(
     .then(user => Token.create({ id: user.id }))
 }
 
-function handleError(er){
-  if (er.name === 'ValidationError') {
-    throw wrapError(er, ValidationError)
-  }
+function changePassword(
+  _,
+  { oldPwd, newPwd },
+  { me, User, Token }: Context,
+) {
+  assert(!!me.id, Unauthorized)
 
-  // Don't wrap to pass throw vevey errors
-  throw er
+  return User.changePassword(me.id, oldPwd, newPwd)
+    .then(returnSuccess)
 }
 
-const successResponse = createResponse(true)
+const returnSuccess = createResponse(true)
 
 function createResponse(success){
   return () => ({ result: success })
