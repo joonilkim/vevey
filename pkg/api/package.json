@@ -1,5 +1,5 @@
 {
-  "name": "api",
+  "name": "vevey-api",
   "version": "0.0.0",
   "main": "dist/index.js",
   "repository": "https://github.com/joonilkim/vevey.git",

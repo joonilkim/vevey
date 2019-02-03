@@ -195,6 +195,7 @@
     express "^4.16.4"
     express-graphql "^0.6.0"
     graphql-tools "^4.0.3"
+    jsonwebtoken "^8.4.0"
     pino "^5.10.8"
     pino-http "^4.1.0"
 

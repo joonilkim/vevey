@@ -22,10 +22,7 @@
       "pkg/*"
     ],
     "nohoist": [
-      "**/route/**",
-      "**/web/**",
-      "**/api/**",
-      "**/auth/**"
+      "**/vevey-*/**"
     ]
   },
   "// 1": "Put language specific dependencies here",
@@ -50,7 +47,6 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "lint-staged && yarn run test"
     }
   },
   "lint-staged": {

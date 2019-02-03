@@ -1,5 +1,5 @@
 {
-  "name": "route",
+  "name": "vevey-route",
   "version": "0.0.0",
   "main": "dist/secure.js",
   "repository": "https://github.com/joonilkim/vevey.git",

@@ -1,12 +1,15 @@
-import * as assert from 'assert'
+import * as jwt from 'jsonwebtoken'
 
-export const auth = () => {
+export const auth = ({ secret }) => {
   return (req, res, next) => {
-    const id = req.get('Authorization')
-    assert(!['null', 'undefined'].includes(id))
+    const token = req.get('Authorization')
 
-    req['user'] = { id }
-    next()
+    jwt.verify(token, secret, (er, payload) => {
+      // skip error
+
+      req['user'] = payload || { id: null }
+      next()
+    })
   }
 
 }

@@ -29,6 +29,11 @@ RUN git lfs install --force
 
 RUN mkdir -p /build
 
+# Install dev dependencies
+COPY yarn.lock package.json /build/
+WORKDIR /build/
+RUN yarn install --frozen-lockfile
+
 COPY . /build/
 
 RUN mkdir -p /repo
