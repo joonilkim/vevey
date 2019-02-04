@@ -1,4 +1,8 @@
-import { PromiseAll } from '@vevey/common'
+import * as assert from 'assert-err'
+import {
+  NotFound,
+  PromiseAll,
+} from '@vevey/common'
 import * as jwt from 'jsonwebtoken'
 import { dynamoose } from '../connectors/dynamoose'
 
@@ -6,7 +10,7 @@ interface Payload {
   id: string
 }
 
-interface TokenResponse  {
+export interface TokenResponse  {
   accessToken: string
   expiresIn: number
   refreshToken: string
@@ -63,14 +67,19 @@ export class Token {
           er ? rej(er) : res(token)
         )))
 
-    const saveToken = (tokens: TokenResponse) => {
-      Model.create({
+    const saveToken = (tokens: TokenResponse) =>
+      // `Model.create` use `overwrite=false`,
+      // This cause `attribute_not_exists` option to be added.
+      // Because this only applied to hash key, not range key,
+      // when creating a new model with different range key,
+      // it emits `conditional fail error`
+      new Model({
         userId: payload.id,
         token: tokens.refreshToken,
         exp: refreshTokenPayload.exp,
       })
-      return tokens
-    }
+      .save()
+      .then(() => tokens)
 
     return PromiseAll([
       sign(accessTokenPayload),
@@ -91,20 +100,23 @@ export class Token {
       )))
   }
 
-  static verifyAndRefreshIfNeeded(
-    { accessToken, refreshToken }
-  ): Promise<TokenResponse>{
-    const revokeExpires = decoded => {
-      Token.revokeExpires(decoded.id)
-      return decoded
+  static async exchangeToken({ refreshToken }): Promise<TokenResponse>{
+    const decoded = await Token.verify(refreshToken)
+
+    const shouldExistsInDB = async () => {
+      const data = await Model.get({ id: decoded.id, token: refreshToken })
+      assert(!!data && data['userId'], NotFound)
+      return data
     }
 
-    return Token.verify(accessToken)
-      .then(
-        forward,
-        () => Token.verify(refreshToken))
-      .then(revokeExpires)
-      .then(({ id }) => this.create({ id }))
+    const data = await shouldExistsInDB()
+    const userId = data['userId']
+
+    await PromiseAll([
+      Token.revokeExpires(userId),
+      Token.revoke(userId, refreshToken),
+    ])
+    return Token.create({ id: userId })
   }
 
   static revoke(userId, refreshToken): Promise<void> {
@@ -149,5 +161,3 @@ export const createModel = options => {
 const nowInSec = () => Math.floor(Date.now() / 1000)
 
 const returnVoid = () => null
-
-const forward = _ => _

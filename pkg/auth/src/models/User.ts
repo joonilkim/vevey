@@ -84,7 +84,29 @@ export class User {
     this.model = new Model(params)
   }
 
-  static findByEmail(email): Promise<UserResponse> {
+  static get(id: string): Promise<UserResponse> {
+    const shouldBeActive = (user?) => {
+      if(user && (
+         user.status === UserStatus.Confirmed ||
+         user.status === UserStatus.Unconfirmed))
+        return user
+      return null
+    }
+
+    return Model.get({ id })
+      .then(shouldBeActive)
+  }
+
+  static findByEmail(
+    email: string,
+    statuses=[ UserStatus.Confirmed, UserStatus.Unconfirmed ],
+  ): Promise<UserResponse> {
+    const shouldBeInStatus = (user?) => {
+      if(user && statuses.includes(user.status))
+        return user
+      return null
+    }
+
     return Model
       .query('email')
       .eq(email)
@@ -92,12 +114,15 @@ export class User {
       .descending()
       .exec()
       .then(items => items && items[0])
+      .then(shouldBeInStatus)
   }
 
   static invite({ email }): Promise<ConfirmCode> {
-    const shouldNotConfirmed = (user?) => {
+    const shouldNotRegistered = (user?) => {
       if(user && user.status === UserStatus.Confirmed)
         throw new Conflict('Already registered')
+      if(user && user.status === UserStatus.Inactive)
+        throw new Forbidden('In inactive status')
       return user
     }
 
@@ -114,8 +139,10 @@ export class User {
       status: UserStatus.Unconfirmed,
     }
 
-    return User.findByEmail(email)
-      .then(shouldNotConfirmed)
+    const allStatus = Object.values(UserStatus)
+
+    return User.findByEmail(email, allStatus)
+      .then(shouldNotRegistered)
       .then(() => Model.create(invitedUser))
       .then(() => confirmCode)
   }
@@ -160,11 +187,6 @@ export class User {
   }
 
   static forgotPassword({ email }): Promise<ConfirmCode> {
-    const shouldBeConfirmed = (user?) => {
-      if(!user || user.status !== UserStatus.Confirmed)
-        throw new NotFound()
-      return user
-    }
 
     const confirmCode = {
       code: generateCode(),
@@ -184,12 +206,6 @@ export class User {
   static confirmForgotPassword({
     userId, code, newPwd,
   }): Promise<void> {
-    const shouldBeConfirmed = (user?) => {
-      if(!user || user.status !== UserStatus.Confirmed)
-        throw new NotFound()
-      return user
-    }
-
     const verifyCode = user => {
       const confirmCode = user.confirmCode || {}
       if(confirmCode.code === code &&
@@ -212,7 +228,7 @@ export class User {
         .then(hash => ({ user, hash }))
 
     shouldValidPassword(newPwd)
-    return Model.get({ id: userId })
+    return User.get(userId)
       .then(shouldBeConfirmed)
       .then(verifyCode)
       .then(withHash)
@@ -220,7 +236,7 @@ export class User {
       .then(returnVoid)
   }
 
-  static unregister(id, pwd): Promise<void> {
+  static unregister(id: string, pwd: string): Promise<void> {
     const inactivate = user =>
       Model.update({ id }, { status: UserStatus.Inactive })
 
@@ -229,11 +245,11 @@ export class User {
       .then(returnVoid)
   }
 
-  static delete(id): Promise<void>{
+  static delete(id: string): Promise<void>{
     return Model.delete(id)
   }
 
-  static getUserByPwd(id, pwd): Promise<UserResponse> {
+  static getUserByPwd(id: string, pwd: string): Promise<UserResponse> {
     const shouldNotNil = async pwd => {
       if(pwd !== NIL) return
       throw new Forbidden()
@@ -252,12 +268,16 @@ export class User {
     }
 
     return shouldNotNil(pwd)
-      .then(() => Model.get({ id }))
+      .then(() => User.get(id))
       .then(verifyStatus)
       .then(verifyPassword)
   }
 
-  static changePassword(id, oldPwd, newPwd): Promise<void> {
+  static changePassword(
+    id: string,
+    oldPwd: string,
+    newPwd: string
+  ): Promise<void> {
     const updateUser = ({ user, hash }) =>
       Model.update({ id: user.id }, { pwd: hash })
         .then(() => user)
@@ -312,3 +332,9 @@ function generateCode(){
 const nowInSec = () => Math.floor(Date.now() / 1000)
 
 const returnVoid = () => null
+
+const shouldBeConfirmed = (user?) => {
+  if(!user || user.status !== UserStatus.Confirmed)
+    throw new NotFound()
+  return user
+}

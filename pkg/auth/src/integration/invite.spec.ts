@@ -9,6 +9,7 @@ import {
   print,
   gqlRequest,
   truncate,
+  throwIfError,
 } from './helper.spec'
 
 function invite({ email }){
@@ -20,6 +21,7 @@ function invite({ email }){
     }
   }`
   return gqlRequest(app, query)
+    .then(r => throwIfError(r))
 }
 
 function confirmSignUp({ email, name, code, newPwd }) {
@@ -34,6 +36,7 @@ function confirmSignUp({ email, name, code, newPwd }) {
     }
   }`
   return gqlRequest(app, query)
+    .then(r => throwIfError(r))
 }
 
 function login({ email, pwd }) {
@@ -48,6 +51,7 @@ function login({ email, pwd }) {
     }
   }`
   return gqlRequest(app, query)
+    .then(r => throwIfError(r))
 }
 
 

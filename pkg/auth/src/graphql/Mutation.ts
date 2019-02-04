@@ -1,4 +1,5 @@
 import { Context } from '../Context'
+import { UserStatus } from '../models/User'
 import {
   BadRequest,
   Conflict,
@@ -27,7 +28,7 @@ export const schema = `
     changePassword(
       oldPwd: String!
       newPwd: String!
-    ): MutationResponse! @auth(role: User)
+    ): MutationResponse! @auth
 
     forgotPassword(
       email: String!
@@ -39,6 +40,9 @@ export const schema = `
       newPwd: String!
     ): MutationResponse! @auth(role: Guest)
 
+    unregister(
+      pwd: String!
+    ): MutationResponse! @auth
   }
 
   type MutationResponse {
@@ -60,6 +64,7 @@ export const resolvers = {
     changePassword,
     forgotPassword,
     confirmForgotPassword,
+    unregister,
   }
 }
 
@@ -100,7 +105,7 @@ function login(
     throw BadRequest(`Invalid email or password`)
   }
 
-  return User.findByEmail(email)
+  return User.findByEmail(email, [UserStatus.Confirmed])
     .then(shouldExists)
     .then(({ id }) => User.getUserByPwd(id, pwd))
     .then(user => Token.create({ id: user.id }))
@@ -144,6 +149,23 @@ function confirmForgotPassword(
 
   return User.confirmForgotPassword({ userId, code, newPwd })
     .catch(suppressNotFound)
+    .then(returnSuccess)
+}
+
+function unregister(
+  _,
+  { pwd },
+  { me, User, Token }: Context,
+) {
+  // suppress exact message for security reason
+  const suppressNotFound = er => {
+    if(er instanceof NotFound) return {}
+    throw er
+  }
+
+  return User.unregister(me.id, pwd)
+    .catch(suppressNotFound)
+    .then(() => Token.revokeAll(me.id))
     .then(returnSuccess)
 }
 

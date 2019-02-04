@@ -10,6 +10,7 @@ import {
   print,
   gqlRequest,
   truncate,
+  throwIfError,
 } from './helper.spec'
 
 const saltRound = 8
@@ -48,6 +49,7 @@ function login({ email, pwd }, token?) {
     }
   }`
   return gqlRequest(app, query, token)
+    .then(r => throwIfError(r))
 }
 
 function changePassword({ email, oldPwd, newPwd }, token?){
@@ -60,6 +62,7 @@ function changePassword({ email, oldPwd, newPwd }, token?){
     }
   }`
   return gqlRequest(app, query, token)
+    .then(r => throwIfError(r))
 }
 
 function forgotPassword({ email }, token?) {
@@ -71,6 +74,7 @@ function forgotPassword({ email }, token?) {
     }
   }`
   return gqlRequest(app, query, token)
+    .then(r => throwIfError(r))
 }
 
 function confirmForgotPassword({ userId, code, newPwd }, token?) {
@@ -84,8 +88,32 @@ function confirmForgotPassword({ userId, code, newPwd }, token?) {
     }
   }`
   return gqlRequest(app, query, token)
+    .then(r => throwIfError(r))
 }
 
+function unregister({ pwd }, token?) {
+  const query = `mutation {
+    unregister(
+      pwd: "${pwd}"
+    ){
+      result
+    }
+  }`
+  return gqlRequest(app, query, token)
+    .then(r => throwIfError(r))
+}
+
+function getMe(token?) {
+  const query = `query {
+    getMe {
+      id
+      email
+      name
+    }
+  }`
+  return gqlRequest(app, query, token)
+    .then(r => throwIfError(r))
+}
 
 describe('User', function(){
   this.timeout(10000)
@@ -185,6 +213,43 @@ describe('User', function(){
       await login({ email, pwd: newPwd })
         .then(r => r.body.data.login)
         .should.eventually.have.property('accessToken')
+    })
+  })
+
+  describe('when unregister', () => {
+    const { email, pwd } = testUser
+    let me: { id, name }
+
+    before(async () => {
+      await truncateAll()
+      await createUser(testUser)
+    })
+
+    it('should be logged in', async () => {
+      await unregister({ pwd })
+        .should.be.rejectedWith('Unauthorized')
+    })
+
+    it('should pass', async () => {
+      const token = await login({ email, pwd })
+        .then(r => r.body.data.login)
+      token.should.have.property('accessToken')
+
+      me = await getMe(token)
+        .then(r => r.body.data.getMe)
+      me.should.have.property('id')
+
+      await unregister({ pwd }, token)
+        .then(r => r.body.data.unregister)
+        .should.eventually.have.property('result', true)
+    })
+
+    it('should not return user info', async () => {
+      await User.get(me.id)
+        .should.eventually.not.exist
+
+      await User.findByEmail(email)
+        .should.eventually.not.exist
     })
   })
 
