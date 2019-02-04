@@ -8,7 +8,7 @@ nodemon = ${root}/node_modules/.bin/nodemon
 test:
 	NODE_ENV=test \
 	TS_NODE_FILES=true \
-	${mocha} \
+	${mocha} --recursive \
 		-r ts-node/register \
 		"src/**/*.spec.{ts,tsx}" --colors
 

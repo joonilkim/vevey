@@ -1,5 +1,4 @@
 import * as _request from 'supertest'
-import { PromiseAll } from '@vevey/common'
 import { dynamoose } from '../connectors/dynamoose'
 
 
@@ -51,7 +50,7 @@ export const dropTables = tableNames => {
       .promise()
       .catch(ignoreNotFound)
 
-  return PromiseAll(
+  return Promise.all(
     Object.values(tableNames).map(drop))
 }
 

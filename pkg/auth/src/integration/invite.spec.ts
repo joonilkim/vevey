@@ -1,6 +1,5 @@
 import * as chai from 'chai'
 import * as chaiAsPromised from 'chai-as-promised'
-import { PromiseAll } from '@vevey/common'
 import { User } from '../models/User'
 import { Token } from '../models/Token'
 import { app } from '../app'
@@ -67,7 +66,7 @@ describe('Invite', function(){
   }
 
   before(async () => {
-    await PromiseAll([
+    await Promise.all([
       truncate(User.Model, ['id']),
       truncate(Token.Model, ['userId', 'token'])
     ])

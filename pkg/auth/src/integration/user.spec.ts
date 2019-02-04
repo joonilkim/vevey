@@ -1,7 +1,6 @@
 import * as chai from 'chai'
 import * as chaiAsPromised from 'chai-as-promised'
 import * as bcrypt from 'bcrypt'
-import { PromiseAll } from '@vevey/common'
 import { User, UserStatus } from '../models/User'
 import { Token } from '../models/Token'
 import { app } from '../app'
@@ -28,7 +27,7 @@ function createUser ({ email, pwd, name }) {
 }
 
 function truncateAll() {
-  return PromiseAll([
+  return Promise.all([
     truncate(User.Model, ['id']),
     truncate(Token.Model, ['userId', 'token'])
   ])

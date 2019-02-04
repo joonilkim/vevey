@@ -33,7 +33,7 @@ export function PromiseAll(
 export const readFile = promisify(fs.readFile)
 
 export const readFileAll = fnames =>
-  PromiseAll(fnames.map(readFile))
+  Promise.all(fnames.map(readFile))
 
 const exec = (fn, ...args) =>
   fn instanceof Function ? fn(...args) : fn
