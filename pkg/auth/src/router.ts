@@ -1,4 +1,3 @@
-import * as AWS from 'aws-sdk'
 import * as express from 'express'
 import * as gql from '@vevey/gql'
 import { schema, wrapError } from './graphql'
@@ -13,10 +12,6 @@ export function router() {
   const env = process.env.NODE_ENV || 'development'
   const secret = process.env.TOKEN_SECRET || 'mytokensecret'
   const saltRound = Number(process.env.SALT_ROUND || '8')
-
-  AWS.config.update({
-    region: process.env.AWS_DEFAULT_REGION,
-  })
 
   const router = express.Router()
 

@@ -29,6 +29,25 @@ class ConstraintDirective extends SchemaDirectiveVisitor {
   }
 }
 
+export const schema = `
+  enum ConstraintFormat {
+    email
+    password
+  }
+
+  directive @constraint(
+    min: Int
+    max: Int
+    minLength: Int
+    maxLength: Int
+    pattern: String
+    format: ConstraintFormat
+  ) on ARGUMENT_DEFINITION
+`
+
+export const directive = {
+  constraint: ConstraintDirective
+}
 
 const validators = {
   min(fieldName, arg, val){
@@ -66,18 +85,33 @@ const validators = {
       `${fieldName} has invalid format`)
   },
 
+  format(fieldName, arg, val){
+    assert(typeof val === 'string', ValidationError)
+    if(arg === 'email') { return validateEmail(val) }
+    if(arg === 'password') { return validatePassword(val) }
+  },
 }
 
-export const schema = `
-  directive @constraint(
-    min: Int
-    max: Int
-    minLength: Int
-    maxLength: Int
-    pattern: String
-  ) on ARGUMENT_DEFINITION
-`
+function validatePassword(pwd){
+  if(!/^[a-zA-Z0-9!@#$%^&*()_+}{":;'?/>.<,]{8,}$/.test(pwd))
+    throw new ValidationError(
+      'Password must have at least 8 characters.')
 
-export const directive = {
-  constraint: ConstraintDirective
+  if(!/[a-z]+/.test(pwd))
+    throw new ValidationError(
+      'Password must have at least one lowercase letter.')
+
+  if(!/[A-Z]+/.test(pwd))
+    throw new ValidationError(
+      'Password must have at least one uppercase letter.')
+
+  if(!/[0-9!@#$%^&*()_+}{":;'?/>.<,]+/.test(pwd))
+    throw new ValidationError(
+      'Password must have at least one digit or non letter.')
 }
+
+function validateEmail(email){
+  if(!/^\S+@\S+\.\S+$/.test(email))
+    throw new ValidationError('Invalid email format.')
+}
+

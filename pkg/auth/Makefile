@@ -1,4 +1,4 @@
 include ../../support/Makefile
 
-upgrade-dep:
+upgrade:
 	cd ../gql && yarn run build && cd ../auth && yarn upgrade file:../gql

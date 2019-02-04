@@ -6,7 +6,7 @@ interface Me {
 }
 
 interface Context {
-  me: Me,
-  User: typeof User,
-  Token: typeof Token,
+  me: Me
+  User: typeof User
+  Token: typeof Token
 }

@@ -14,14 +14,14 @@ export const schema = `
   type Mutation {
 
     inviteMe(
-      email: String!
+      email: String! @constraint(format: email)
     ): MutationResponse! @auth(role: Guest)
 
     confirmSignUp(
-      email: String!
-      name: String!
+      email: String! @constraint(format: email)
+      name: String! @constraint(minLength: 4)
       code: String!
-      newPwd: String!
+      newPwd: String! @constraint(format: password)
     ): MutationResponse! @auth(role: Guest)
 
     createToken(
@@ -33,7 +33,7 @@ export const schema = `
 
     changePassword(
       oldPwd: String!
-      newPwd: String!
+      newPwd: String! @constraint(format: password)
     ): MutationResponse! @auth
 
     forgotPassword(
@@ -43,7 +43,7 @@ export const schema = `
     confirmForgotPassword(
       userId: ID!
       code: String!
-      newPwd: String!
+      newPwd: String! @constraint(format: password)
     ): MutationResponse! @auth(role: Guest)
 
     unregister(

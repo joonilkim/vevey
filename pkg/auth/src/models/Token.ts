@@ -39,7 +39,7 @@ export const TokenSchema = new dynamoose.Schema({
   },
 })
 
-const Model = dynamoose.model('tokens', TokenSchema)
+const Model = dynamoose.model('Tokens', TokenSchema)
 
 export class Token {
   static Model = Model
@@ -150,7 +150,7 @@ export class Token {
   }
 }
 
-export const createModel = options => {
+export const createModel = (options={}) => {
   Object.entries(options).forEach(([k, v]) => Token[k] = v)
   return Token
 }

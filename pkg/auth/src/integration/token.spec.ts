@@ -14,7 +14,6 @@ import {
 } from './helper.spec'
 
 const saltRound = 8
-const should = chai.should()
 
 
 //// helpers ////
@@ -84,7 +83,8 @@ function getMe(token?) {
 describe('Token', function(){
   this.timeout(10000)
   chai.use(chaiAsPromised);
-  chai.should()
+  // @ts-ignore
+  const should = chai.should()
 
   const testUser = {
     email: process.env.TEST_EMAIL || 'success@simulator.amazonses.com',

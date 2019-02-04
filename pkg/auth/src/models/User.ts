@@ -7,7 +7,6 @@ import {
   Conflict,
   NotFound,
   Forbidden,
-  ValidationError
 } from '@vevey/common'
 import { dynamoose } from '../connectors/dynamoose'
 
@@ -41,13 +40,13 @@ export const UserSchema = new dynamoose.Schema({
       project: true,
       throughput: 1,
     },
-    validate: isValidEmail(),
+    validate: s => !!s
   },
   name: {
     type: String,
     required: true,
     trim: true,
-    validate: s => s && s.length >= 4
+    validate: s => !!s
   },
   pwd: {
     type: String,
@@ -68,9 +67,9 @@ export const UserSchema = new dynamoose.Schema({
   saveUnknown: false,
 })
 
-const Model = dynamoose.model('users', UserSchema)
+const Model = dynamoose.model('Users', UserSchema)
 
-const NIL = '_______'
+const NIL = '_'
 
 export class User {
   static Model = Model
@@ -177,7 +176,6 @@ export class User {
       bcrypt.hash(newPwd, User.saltRound)
         .then(hash => ({ user, hash }))
 
-    shouldValidPassword(newPwd)
     return User.findByEmail(email)
       .then(shouldBeInvited)
       .then(verifyCode)
@@ -227,7 +225,6 @@ export class User {
       bcrypt.hash(newPwd, User.saltRound)
         .then(hash => ({ user, hash }))
 
-    shouldValidPassword(newPwd)
     return User.get(userId)
       .then(shouldBeConfirmed)
       .then(verifyCode)
@@ -286,7 +283,6 @@ export class User {
       bcrypt.hash(newPwd, User.saltRound)
         .then(hash => ({ user, hash }))
 
-    shouldValidPassword(newPwd)
     return User.getUserByPwd(id, oldPwd)
       .then(withHash)
       .then(updateUser)
@@ -298,31 +294,9 @@ export class User {
   }
 } // class
 
-export const createModel = options => {
+export const createModel = (options={}) => {
   Object.entries(options).forEach(([k, v]) => User[k] = v)
   return User
-}
-
-function shouldValidPassword(pwd){
-  if(!/^[a-zA-Z0-9!@#$%^&*()_+}{":;'?/>.<,]{8,}$/.test(pwd))
-    throw new ValidationError(
-      'Password must have at least 8 characters.')
-
-  if(!/[a-z]+/.test(pwd))
-    throw new ValidationError(
-      'Password must have at least one lowercase letter.')
-
-  if(!/[A-Z]+/.test(pwd))
-    throw new ValidationError(
-      'Password must have at least one uppercase letter.')
-
-  if(!/[0-9!@#$%^&*()_+}{":;'?/>.<,]+/.test(pwd))
-    throw new ValidationError(
-      'Password must have at least one digit or non letter.')
-}
-
-function isValidEmail(){
-  return s => /^\S+@\S+\.\S+$/.test(s)
 }
 
 function generateCode(){
