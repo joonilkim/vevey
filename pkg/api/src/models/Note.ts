@@ -1,5 +1,12 @@
 import dynamoose from '../connectors/dynamoose'
 
+export interface NoteResponse  {
+  id: string
+  userId: number
+  contents: string
+  pos: number
+}
+
 export const NoteSchema = new dynamoose.Schema({
   id: {
     type: String,
@@ -33,3 +40,8 @@ export const NoteSchema = new dynamoose.Schema({
 })
 
 export const Note = dynamoose.model('Notes', NoteSchema)
+
+export const createModel = (options={}) => {
+  Object.entries(options).forEach(([k, v]) => Note[k] = v)
+  return Note
+}

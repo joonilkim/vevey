@@ -1,7 +1,7 @@
 import * as express from 'express'
 import * as gql from '@vevey/gql'
 import { schema } from './graphql'
-import { Note } from './models/Note'
+import * as Note from './models/Note'
 import { Context } from './Context'
 
 const { auth, graphqlHttp, logger } = gql.express
@@ -13,6 +13,10 @@ export function router() {
 
   const router = express.Router()
 
+  const models = {
+    Note: Note.createModel(),
+  }
+
   router.use(logger({ env }))
 
   router.use(auth({ secret }))
@@ -21,7 +25,7 @@ export function router() {
 
   const createContext = (req): Context => ({
     me: req['user'],
-    Note,
+    ...models,
   })
 
   router.use('/gql', graphqlHttp({
@@ -29,14 +33,6 @@ export function router() {
     graphiql: env === 'development',
     createContext,
   }))
-
-  //// rest api ////
-
-  router.get('/users', (_, res) => {
-    res.json([
-      {id: 1, name: 'Joe'},
-    ])
-  })
 
   return router
 }

@@ -203,8 +203,4 @@ function unregister(
     .then(returnSuccess)
 }
 
-const returnSuccess = createResponse(true)
-
-function createResponse(success){
-  return () => ({ result: success })
-}
+const returnSuccess = () => ({ result: true })

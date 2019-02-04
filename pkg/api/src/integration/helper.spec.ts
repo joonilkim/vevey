@@ -1,5 +1,4 @@
 import * as _request from 'supertest'
-import { PromiseAll } from '@vevey/common'
 import dynamoose from '../connectors/dynamoose'
 
 
@@ -14,6 +13,17 @@ export const request = app =>
     .post('/gql')
     .set('x-apigateway-event', '{}')
     .set('x-apigateway-context', '{}')
+
+export const gqlRequest = (
+  app, query: string, token?: { accessToken }
+) => {
+  const headers = token ?
+    { Authorization: token.accessToken } : {}
+
+  return request(app)
+    .set(headers)
+    .send({ query })
+}
 
 export const print = data => {
   console.info(data)
@@ -47,7 +57,7 @@ export const dropTables = tableNames => {
       .promise()
       .catch(ignoreNotFound)
 
-  return PromiseAll(
+  return Promise.all(
     Object.values(tableNames)
       .map(drop))
 }

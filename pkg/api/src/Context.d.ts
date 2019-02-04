@@ -1,10 +1,10 @@
-import { ModelConstructor } from 'dynamoose'
+import { Note } from './models/Note'
 
 interface User {
-  id: String
+  id: string
 }
 
 interface Context {
   me: User
-  Note: ModelConstructor<{}, {}>
+  Note: typeof Note
 }
