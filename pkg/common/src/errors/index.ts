@@ -1,5 +1,6 @@
 export const BadRequest = createError('BadRequest')
 export const ValidationError = createError('ValidationError')
+export const NotImplemented = createError('NotImplemented')
 export const Unauthorized = createError('Unauthorized')
 export const Forbidden = createError('Forbidden')
 export const NotFound = createError('NotFound')
