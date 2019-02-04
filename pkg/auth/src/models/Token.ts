@@ -1,10 +1,8 @@
-import * as Bluebird from 'bluebird'
+import { coroutine, promisify } from 'bluebird'
 import * as assert from 'assert-err'
 import { NotFound } from '@vevey/common'
 import * as jwt from 'jsonwebtoken'
 import { dynamoose } from '../connectors/dynamoose'
-
-const { coroutine, promisify } = Bluebird
 
 interface Payload {
   id: string
@@ -34,6 +32,11 @@ export const TokenSchema = new dynamoose.Schema({
   throughput: {read: 1, write: 1},
   timestamps: true,
   saveUnknown: false,
+  expires: {
+    ttl: 30*24*60*60,
+    attribute: 'exp',
+    returnExpiredItems: false,
+  },
 })
 
 const Model = dynamoose.model('tokens', TokenSchema)
@@ -72,7 +75,7 @@ export class Token {
       new Model({
         userId: payload.id,
         token: tokens.refreshToken,
-        exp: refreshTokenPayload.exp,
+        exp: new Date(refreshTokenPayload.exp * 1000),
       })
       .save()
       .then(() => tokens)
@@ -89,49 +92,28 @@ export class Token {
       .then(saveToken)
   }
 
-  static verify(token: string): Promise<Payload> {
-    return new Promise((r, j) => (
-      jwt.verify(token, Token.secret, (er, decoded) =>
-        er ? j(er) : r(<Payload>decoded)
-      )))
-  }
-
-  static exchangeToken = coroutine(function*({ refreshToken }){
+  static createByRefreshToken = coroutine(function*(refreshToken){
     const decoded = yield Token.verify(refreshToken)
 
     const shouldExistsInDB = coroutine(function*(){
-      const data = yield Model.get({ id: decoded.id, token: refreshToken })
-      assert(!!data && data['userId'], NotFound)
+      const data = yield Model.get(
+        { userId: decoded.id, token: refreshToken })
+      assert(!!data && !!data['userId'], NotFound)
       return data
     })
 
     const data = yield shouldExistsInDB()
     const userId = data['userId']
 
-    yield Promise.all([
-      Token.revokeExpires(userId),
-      Token.revoke(userId, refreshToken),
-    ])
+    yield Token.revoke(userId, refreshToken)
     return Token.create({ id: userId })
   })
 
-  static async _exchangeToken({ refreshToken }): Promise<TokenResponse>{
-    const decoded = await Token.verify(refreshToken)
-
-    const shouldExistsInDB = async () => {
-      const data = await Model.get({ id: decoded.id, token: refreshToken })
-      assert(!!data && data['userId'], NotFound)
-      return data
-    }
-
-    const data = await shouldExistsInDB()
-    const userId = data['userId']
-
-    await Promise.all([
-      Token.revokeExpires(userId),
-      Token.revoke(userId, refreshToken),
-    ])
-    return Token.create({ id: userId })
+  static verify(token: string): Promise<Payload> {
+    return new Promise((r, j) => (
+      jwt.verify(token, Token.secret, (er, decoded) =>
+        er ? j(er) : r(<Payload>decoded)
+      )))
   }
 
   static revoke(userId, refreshToken): Promise<void> {

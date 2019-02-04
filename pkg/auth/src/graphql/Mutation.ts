@@ -1,9 +1,13 @@
+import * as assert from 'assert-err'
 import { Context } from '../Context'
 import { UserStatus } from '../models/User'
 import {
   BadRequest,
+  ValidationError,
+  Unauthorized,
   Conflict,
   NotFound,
+  wrapError,
 } from '@vevey/common'
 
 export const schema = `
@@ -20,9 +24,11 @@ export const schema = `
       newPwd: String!
     ): MutationResponse! @auth(role: Guest)
 
-    login(
-      email: String!
-      pwd: String!
+    createToken(
+      grantType: GrantType!
+      email: String
+      pwd: String
+      refreshToken: String
     ): Token! @auth(role: Guest)
 
     changePassword(
@@ -45,6 +51,11 @@ export const schema = `
     ): MutationResponse! @auth
   }
 
+  enum GrantType {
+    credential
+    refreshToken
+  }
+
   type MutationResponse {
     result: Boolean!
   }
@@ -60,7 +71,7 @@ export const resolvers = {
   Mutation: {
     inviteMe,
     confirmSignUp,
-    login,
+    createToken,
     changePassword,
     forgotPassword,
     confirmForgotPassword,
@@ -94,9 +105,9 @@ function confirmSignUp(
     .then(returnSuccess)
 }
 
-function login(
+function createToken(
   _,
-  { email, pwd },
+  { grantType, email, pwd, refreshToken },
   { me, User, Token }: Context,
 ) {
   const shouldExists = (user?) => {
@@ -105,10 +116,33 @@ function login(
     throw BadRequest(`Invalid email or password`)
   }
 
-  return User.findByEmail(email, [UserStatus.Confirmed])
-    .then(shouldExists)
-    .then(({ id }) => User.getUserByPwd(id, pwd))
-    .then(user => Token.create({ id: user.id }))
+  // redirect NotFound to Unauthorized for security reason
+  const suppressNotFound = er => {
+    if(er instanceof NotFound)
+      throw wrapError(<Error>er, Unauthorized)
+    throw er
+  }
+
+  const byCredential = () => {
+    assert(!!email && !!pwd, ValidationError, `Invalid email or pwd`)
+
+    return User.findByEmail(email, [UserStatus.Confirmed])
+      .then(shouldExists)
+      .then(({ id }) => User.getUserByPwd(id, pwd))
+      .then(user => Token.create({ id: user.id }))
+      .catch(suppressNotFound)
+  }
+
+  const byRefreshToken = () => {
+    assert(!!refreshToken, ValidationError, `Invalid refreshToken`)
+
+    return Token.createByRefreshToken(refreshToken)
+      .catch(suppressNotFound)
+  }
+
+  if(grantType === 'credential') { return byCredential() }
+  if(grantType === 'refreshToken') { return byRefreshToken() }
+  throw new BadRequest(`Invalid grantType: ${grantType}`)
 }
 
 function changePassword(

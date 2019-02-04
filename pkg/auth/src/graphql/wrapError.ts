@@ -15,6 +15,5 @@ export function wrapError(er){
       er.name === 'JsonWebTokenError') {
     return wrapErr(er, Unauthorized)
   }
-
   return er
 }

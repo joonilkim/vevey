@@ -17,7 +17,7 @@ export enum UserStatus {
   Inactive = 'Inactive',
 }
 
-interface UserResponse {
+export interface UserResponse {
   [_: string]: any
 }
 

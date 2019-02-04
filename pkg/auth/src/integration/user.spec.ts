@@ -36,9 +36,10 @@ function truncateAll() {
 
 //// graphql queries ////
 
-function login({ email, pwd }, token?) {
+function createToken({ email, pwd }, token?) {
   const query = `mutation {
-    login(
+    createToken(
+      grantType: credential
       email: "${email}"
       pwd: "${pwd}"
     ){
@@ -125,7 +126,7 @@ describe('User', function(){
     name: 'testuser',
   }
 
-  describe('when login', () => {
+  describe('when createToken', () => {
     const { email, pwd } = testUser
 
     before(async () => {
@@ -134,8 +135,8 @@ describe('User', function(){
     })
 
     it('should pass', async () => {
-      const r = await login({ email, pwd })
-        .then(r => r.body.data.login)
+      const r = await createToken({ email, pwd })
+        .then(r => r.body.data.createToken)
 
       r.should.have.property('accessToken')
       r.should.have.property('refreshToken')
@@ -144,7 +145,7 @@ describe('User', function(){
 
     it('should not pass with invalid password', async () => {
       const pwd = 'invalidPass1!'
-      await login({ email, pwd })
+      await createToken({ email, pwd })
         .should.be.rejectedWith('Unauthorized')
     })
   })
@@ -165,8 +166,8 @@ describe('User', function(){
     })
 
     it('should pass', async () => {
-      const token = await login({ email, pwd })
-        .then(r => r.body.data.login)
+      const token = await createToken({ email, pwd })
+        .then(r => r.body.data.createToken)
 
       await changePassword({ email, oldPwd: pwd, newPwd }, token)
         .then(r => r.body.data.changePassword)
@@ -174,13 +175,13 @@ describe('User', function(){
     })
 
     it('should not login with old one', async () => {
-      await login({ email, pwd })
+      await createToken({ email, pwd })
         .should.be.rejectedWith('Unauthorized')
     })
 
     it('should login with new one', async () => {
-      await login({ email, pwd: newPwd })
-        .then(r => r.body.data.login)
+      await createToken({ email, pwd: newPwd })
+        .then(r => r.body.data.createToken)
         .should.eventually.have.property('accessToken')
     })
   })
@@ -209,8 +210,8 @@ describe('User', function(){
     })
 
     it('should login with new one', async () => {
-      await login({ email, pwd: newPwd })
-        .then(r => r.body.data.login)
+      await createToken({ email, pwd: newPwd })
+        .then(r => r.body.data.createToken)
         .should.eventually.have.property('accessToken')
     })
   })
@@ -230,8 +231,8 @@ describe('User', function(){
     })
 
     it('should pass', async () => {
-      const token = await login({ email, pwd })
-        .then(r => r.body.data.login)
+      const token = await createToken({ email, pwd })
+        .then(r => r.body.data.createToken)
       token.should.have.property('accessToken')
 
       me = await getMe(token)
