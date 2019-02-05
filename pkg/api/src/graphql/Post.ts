@@ -1,7 +1,7 @@
 export const schema = `
-  type Note {
+  type Post {
     id: ID!
-    userId: ID!
+    authorId: ID!
     contents: String!
     pos: Integer!
     createdAt: Date!

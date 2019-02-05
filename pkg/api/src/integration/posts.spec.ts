@@ -3,7 +3,7 @@ import * as chaiAsPromised from 'chai-as-promised'
 import * as express from 'express'
 import * as jwt from 'jsonwebtoken'
 import { times } from '@vevey/common'
-import { Note } from '../models/Note'
+import { Post, PostResponse } from '../models/Post'
 import { router } from '../router'
 import {
   // @ts-ignore
@@ -24,22 +24,20 @@ app.use(router())
 
 //// Delaration ////
 
-interface Obj { [_: string]: any }
-
-const NoteFields = [
-  'id', 'userId',
+const PostFields = [
+  'id', 'authorId',
   'contents', 'pos',
   'createdAt', 'updatedAt',
 ]
 
 //// Graphql queries ////
 
-const createNote = (userId, { contents }) => {
+const createPost = (userId, { contents }) => {
   const query = `mutation {
-    createNote(
+    createPost(
       contents: "${contents}"
     ) {
-      ${NoteFields.join('\n')}
+      ${PostFields.join('\n')}
     }
   }`
 
@@ -48,14 +46,14 @@ const createNote = (userId, { contents }) => {
     .then(r => throwIfError(r))
 }
 
-const updateNote = (userId, id, { contents, pos }) => {
+const updatePost = (userId, { id, contents, pos }) => {
   const query = `mutation {
-    updateNote(
+    updatePost(
       id: "${id}"
       contents: "${contents}"
       pos: ${pos}
     ) {
-      ${NoteFields.join('\n')}
+      ${PostFields.join('\n')}
     }
   }`
 
@@ -64,9 +62,9 @@ const updateNote = (userId, id, { contents, pos }) => {
     .then(r => throwIfError(r))
 }
 
-const deleteNote = (userId, id) => {
+const deletePost = (userId, id) => {
   const query= `mutation {
-    deleteNote(id: "${id}"){
+    deletePost(id: "${id}"){
       result
     }
   }`
@@ -76,10 +74,10 @@ const deleteNote = (userId, id) => {
     .then(r => throwIfError(r))
 }
 
-const getNote = (userId, id) => {
+const getPost = (userId, id) => {
   const query = `{
-    note(id: "${id}") {
-      ${NoteFields.join('\n')}
+    getPost(id: "${id}") {
+      ${PostFields.join('\n')}
     }
   }`
 
@@ -88,14 +86,14 @@ const getNote = (userId, id) => {
     .then(r => throwIfError(r))
 }
 
-const allNotes = (userId, limit) => {
+const postsByAuthor = (userId, authorId, limit) => {
   const query = `{
-    userNotes(
-      userId: "${userId}"
+    postsByAuthor(
+      authorId: "${authorId}"
       limit: ${limit}
     ) {
       items {
-        ${NoteFields.join('\n')}
+        ${PostFields.join('\n')}
       }
     }
   }`
@@ -105,7 +103,7 @@ const allNotes = (userId, limit) => {
     .then(r => throwIfError(r))
 }
 
-describe('Note', function(){
+describe('Post', function(){
   this.timeout(10000)
   chai.use(chaiAsPromised);
   // @ts-ignore
@@ -113,100 +111,105 @@ describe('Note', function(){
 
   describe('when create', () => {
     const userId = randStr()
-    let created: Obj
+    let created: PostResponse
 
     before(async () => {
       await Promise.all([
-        truncate(Note, ['id']),
+        truncate(Post.Model, ['id']),
       ])
     })
 
     it('should pass', async () => {
       const contents = randStr()
-      created = await createNote(userId, { contents })
-        .then(r => r.body.data.createNote)
+      const { id } = await createPost(userId, { contents })
+        .then(r => r.body.data.createPost)
 
-      NoteFields.forEach(f =>
+      created = <PostResponse>await Post.Model.get({ id })
+
+      PostFields.forEach(f =>
         created.should.have.property(f).to.be.exist)
     })
 
     it('should require token', async () => {
       const contents = randStr()
-      await createNote(null, { contents })
+      await createPost(null, { contents })
         .should.be.rejectedWith('Unauthorized')
     })
 
     it('should update', async () => {
-      const toUpdate = {
+      const p = {
+        id: created.id,
         contents: randStr(),
-        pos: new Date().getTime(),
+        pos: randInt(),
       }
-      const updated: Obj = await updateNote(userId, created.id, toUpdate)
-        .then(r => r.body.data.updateNote)
+      const updated = await updatePost(userId, p)
+        .then(r => r.body.data.updatePost)
 
-      NoteFields.forEach(f =>
+      PostFields.forEach(f =>
         updated.should.have.property(f).to.be.exist)
 
-      updated.contents.should.be.equal(toUpdate.contents)
-      updated.pos.should.be.equal(toUpdate.pos)
+      updated.contents.should.be.equal(p.contents)
+      updated.pos.should.be.equal(p.pos)
       new Date(updated.updatedAt)
         .should.be.above(new Date(created.updatedAt))
     })
 
     it('should not update without token', async () => {
-      const toUpdate = {
+      const p = {
+        id: created.id,
         contents: randStr(),
-        pos: new Date().getTime(),
+        pos: randInt(),
       }
-      await updateNote(null, created.id, toUpdate)
+      await updatePost(null, p)
         .should.be.rejectedWith('Unauthorized')
     })
 
     it('should not be changed by others', async () => {
-      const toUpdate = {
+      const p = {
+        id: created.id,
         contents: randStr(),
-        pos: new Date().getTime(),
+        pos: randInt(),
       }
       const notMe = randStr()
 
-      await updateNote(notMe, created.id, toUpdate)
+      await updatePost(notMe, p)
         .should.be.rejectedWith('Forbidden')
     })
   })
 
   describe('when delete', () => {
     const userId = randStr()
-    let created: Obj
+    let created: PostResponse
 
     before(async () => {
       await Promise.all([
-        truncate(Note, ['id']),
+        truncate(Post.Model, ['id']),
       ])
-      created = await seeding(userId)
+      created = <PostResponse>await seeding(userId)
     })
 
     it('should pass', async () => {
-      const r = await deleteNote(userId, created.id)
-      r.body.data.deleteNote
+      const r = await deletePost(userId, created.id)
+      r.body.data.deletePost
         .should.have.property('result', true)
 
-      const note = await Note.get({ id: created.id })
-      note.should.have.property('id', created.id)
-      note.should.not.have.property('contents')
+      const post = await Post.Model.get({ id: created.id })
+      post.should.have.property('id', created.id)
+      post.should.not.have.property('contents')
     })
 
     it('should not pass without token', async () => {
-      await deleteNote(null, created.id)
+      await deletePost(null, created.id)
         .should.be.rejectedWith('Unauthorized')
     })
 
     it('should not be queried', async () => {
-      await allNotes(userId, 10)
-        .then(r => r.body.data.userNotes.items)
+      await postsByAuthor(userId, userId, 10)
+        .then(r => r.body.data.postsByAuthor.items)
         .should.eventually.be.length(0)
 
-      await getNote(userId, created.id)
-        .then(r => r.body.data.note)
+      await getPost(userId, created.id)
+        .then(r => r.body.data.getPost)
         .should.eventually.not.exist
     })
   })
@@ -217,56 +220,55 @@ describe('Note', function(){
 
     before(async () => {
       await Promise.all([
-        truncate(Note, ['id']),
+        truncate(Post.Model, ['id']),
       ])
       await seeding(userId, 10)
     })
 
     it('should pass', async () => {
-      const notes = await allNotes(userId, limit)
-        .then(r => r.body.data.userNotes.items)
-
-      notes.should.be.length(limit)
+      const posts = await postsByAuthor(userId, userId, limit)
+        .then(r => r.body.data.postsByAuthor.items)
+      posts.should.be.length(limit)
     })
 
     it('should not pass without token', async () => {
-      await allNotes(null, limit)
+      await postsByAuthor(null, userId, limit)
         .should.be.rejectedWith('Unauthorized')
     })
 
     it('should not pass with invalid params', async () => {
-      await allNotes(userId, -1)
+      await postsByAuthor(userId, userId, -1)
         .should.be.rejectedWith('ValidationError')
 
-      await allNotes(userId, 10000)
+      await postsByAuthor(userId, userId, 10000)
         .should.be.rejectedWith('ValidationError')
     })
   })
 
   describe('when get single', () => {
     const userId = randStr()
-    let created: Obj
+    let created: PostResponse
 
     before(async () => {
       await Promise.all([
-        truncate(Note, ['id']),
+        truncate(Post.Model, ['id']),
       ])
-      created = await seeding(userId)
+      created = <PostResponse>await seeding(userId)
     })
 
     it('should pass', async () => {
-      const note = await getNote(userId, created.id)
-        .then(r => r.body.data.note)
+      const post = await getPost(userId, created.id)
+        .then(r => r.body.data.getPost)
 
-      NoteFields.forEach(f =>
-        note.should.have.property(f).to.be.exist)
+      PostFields.forEach(f =>
+        post.should.have.property(f).to.be.exist)
 
-      note.should.have.property('id', created.id)
-      note.should.have.property('contents', created.contents)
+      post.should.have.property('id', created.id)
+      post.should.have.property('contents', created.contents)
     })
 
     it('should not pass without token', async () => {
-      await getNote(null, created.id)
+      await getPost(null, created.id)
         .should.be.rejectedWith('Unauthorized')
     })
   })
@@ -275,23 +277,17 @@ describe('Note', function(){
 
 //// Helpers ////
 
-function seeding(userId, n=1) {
-  const createNote = pos =>
-    new Note({
-      id: randStr(),
-      userId,
-      contents: randStr(),
-      pos,
-    })
+function seeding(userId, n=1): Promise<PostResponse | PostResponse[]> {
+  const createPost = pos => ({
+    id: randStr(),
+    authorId: userId,
+    contents: randStr(),
+    pos,
+  })
 
-  if(n === 1) {
-    const seed = createNote(randInt())
-    return seed.save().then(() => seed)
-  } else {
-    const seeds = times(n).map(createNote)
-    return Note.batchPut(seeds)
-      .then(() => seeds)
-  }
+  const seeds = times(n).map(createPost)
+  return Post.Model.batchPut(seeds)
+    .then(() => n === 1 ? seeds[0] : seeds)
 }
 
 function makeToken(userId: string){

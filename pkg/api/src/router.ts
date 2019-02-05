@@ -1,7 +1,7 @@
 import * as express from 'express'
 import * as gql from '@vevey/gql'
 import { schema } from './graphql'
-import * as Note from './models/Note'
+import * as Post from './models/Post'
 import { Context } from './Context'
 
 const { auth, graphqlHttp, logger } = gql.express
@@ -14,7 +14,7 @@ export function router() {
   const router = express.Router()
 
   const models = {
-    Note: Note.createModel(),
+    Post: Post.createModel(),
   }
 
   router.use(logger({ env }))

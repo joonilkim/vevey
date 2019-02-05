@@ -14,7 +14,7 @@
     "lint": "tslint src/**/*.ts",
     "dev": "make dev",
     "test": "make test",
-    "package": "make package"
+    "zip": "make zip"
   },
   "dependencies": {
     "@vevey/common": "^0.0.0",

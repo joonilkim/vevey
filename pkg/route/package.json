@@ -12,6 +12,6 @@
   "scripts": {
     "lint": "tslint src/**/*.ts",
     "test": "make test",
-    "package": "make package"
+    "zip": "make zip"
   }
 }

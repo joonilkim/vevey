@@ -28,7 +28,7 @@ docker-sh:
 		-f ${root}/support/docker-compose.yml \
 		run --rm build bash
 
-package: docker-build
+zip: docker-build
 	docker-compose \
 		-f ${root}/support/docker-compose.yml \
 		run --rm build \

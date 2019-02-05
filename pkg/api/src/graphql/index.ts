@@ -2,7 +2,7 @@ import { makeExecutableSchema } from 'graphql-tools'
 import { gtypes } from '@vevey/gql'
 import * as Query from './Query'
 import * as Mutation from './Mutation'
-import * as Note from './Note'
+import * as Post from './Post'
 
 export const typeDefs = [
   gtypes.auth.schema,
@@ -11,7 +11,7 @@ export const typeDefs = [
   gtypes.Integer.schema,
   Query.schema,
   Mutation.schema,
-  Note.schema,
+  Post.schema,
 ].join('\n')
 
 export const resolvers = {
@@ -19,7 +19,7 @@ export const resolvers = {
   ...gtypes.Integer.resolvers,
   ...Query.resolvers,
   ...Mutation.resolvers,
-  ...Note.resolvers,
+  ...Post.resolvers,
 }
 
 export const schemaDirectives = {

@@ -1,4 +1,4 @@
-import { Note } from './models/Note'
+import { Post } from './models/Post'
 
 interface User {
   id: string
@@ -6,5 +6,5 @@ interface User {
 
 interface Context {
   me: User
-  Note: typeof Note
+  Post: typeof Post
 }

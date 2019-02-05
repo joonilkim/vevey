@@ -5,8 +5,8 @@ locals {
 
 ## DynamoDB
 
-resource "aws_dynamodb_table" "note" {
-  name = "${var.dynamodb_prefix}Notes"
+resource "aws_dynamodb_table" "post" {
+  name = "${var.dynamodb_prefix}Posts"
 
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "id"
@@ -17,7 +17,7 @@ resource "aws_dynamodb_table" "note" {
   }
 
   attribute {
-    name = "userId"
+    name = "authorId"
     type = "S"
   }
 
@@ -27,8 +27,8 @@ resource "aws_dynamodb_table" "note" {
   }
 
   global_secondary_index {
-    name               = "byUser"
-    hash_key           = "userId"
+    name               = "byAuthor"
+    hash_key           = "authorId"
     range_key          = "pos"
     projection_type    = "ALL"
   }

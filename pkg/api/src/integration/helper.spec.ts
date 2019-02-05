@@ -44,7 +44,7 @@ export const truncate = (Model, keys) =>
     .exec()
     .then(Model.batchDelete)
 
-export const dropTables = tableNames => {
+export const dropTables = (models: Array<{}>) => {
   const db = dynamoose.ddb()
 
   const ignoreNotFound = er => {
@@ -58,7 +58,8 @@ export const dropTables = tableNames => {
       .catch(ignoreNotFound)
 
   return Promise.all(
-    Object.values(tableNames)
+    models
+      .map(m => m['$__']['name'])
       .map(drop))
 }
 

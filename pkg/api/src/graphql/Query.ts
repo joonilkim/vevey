@@ -1,70 +1,41 @@
-import * as assert from 'assert-err'
-import { Forbidden } from '@vevey/common'
 import { Context } from '../Context'
 
 export const schema = `
   type Query {
     ping: String!
 
-    userNotes(
-      userId: ID!
+    postsByAuthor(
+      authorId: ID!
       pos: Integer = ${Number.MAX_SAFE_INTEGER}
       limit: Int! @constraint(min: 1, max: 30)
-    ): NotePagination! @auth
+    ): PostPagination! @auth
 
-    note(
+    getPost(
       id: ID!
-    ): Note @auth
+    ): Post @auth
   }
 
-  type NotePagination {
-    items: [Note!]!
+  type PostPagination {
+    items: [Post!]!
   }
 `
 
 export const resolvers = {
   Query: {
     ping: () => 'ok',
-    userNotes,
-    note,
+    postsByAuthor,
+    getPost,
   }
 }
 
-function userNotes(
-  _,
-  { userId, limit, pos },
-  { me, Note }: Context,
+function postsByAuthor(
+  _, { authorId, limit, pos }, { me, Post }: Context
 ) {
-  assert(me.id === userId, Forbidden)
-
-  return Note
-    .query('userId').eq(userId)
-    .where('pos').lt(pos)
-    .filter('contents').not().null()
-    .limit(limit)
-    .descending()
-    .exec()
-    .then(pagination)
-
+  return Post.allByAuthor(me, authorId, { limit, pos })
 }
 
-function note(
-  _,
-  { id },
-  { me, Note }: Context,
+function getPost(
+  _, { id }, { me, Post }: Context
 ) {
-  const filterDeleted = note =>
-    note && note.contents ? note : null
-
-  const requirePermission = note => {
-    if(note) assert(me.id === note.userId, Forbidden)
-    return note
-  }
-
-  return Note
-    .get({ id })
-    .then(filterDeleted)
-    .then(requirePermission)
+  return Post.get(me, id)
 }
-
-const pagination = (items: []) => ({ items })
