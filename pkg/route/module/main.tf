@@ -1,9 +1,6 @@
 locals {
-  target      = "${path.root}/../pkg/route"
-  dist        = "lambda.zip"
-}
-
-locals {
+  target        = "${path.root}/../pkg/route"
+  dist          = "lambda.zip"
   web_origin_id = "web"
   api_origin_id = "api"
 }
@@ -135,7 +132,7 @@ resource "aws_cloudfront_distribution" "_" {
   }
 
   origin {
-    domain_name = "${var.api_id}.execute-api.${var.region}.amazonaws.com"
+    domain_name = "${var.apig_id}.execute-api.${var.region}.amazonaws.com"
     origin_id   = "${local.api_origin_id}"
 
     origin_path = "/${var.stage}"
@@ -219,11 +216,6 @@ resource "aws_cloudfront_distribution" "_" {
       cookies {
         forward = "none"
       }
-    }
-
-    lambda_function_association {
-      event_type = "origin-response"
-      lambda_arn = "${aws_lambda_function._.qualified_arn}"
     }
   }
 
