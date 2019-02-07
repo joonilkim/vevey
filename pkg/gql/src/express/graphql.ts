@@ -1,6 +1,12 @@
 import * as express from 'express'
 import * as graphql from 'express-graphql'
-import { formatError } from './formatError'
+import * as uuidv4 from 'uuid/v4'
+import {
+  wrapError,
+  InvalidGraphqlSyntax,
+  InternalError,
+} from '@vevey/common'
+
 
 export interface Context { [_: string]: any }
 
@@ -10,26 +16,37 @@ interface Options extends graphql.OptionsData {
 }
 
 export const graphqlHttp = (options: Options) => {
-  const wrapError = options.wrapError || (_ => _)
-
   return (req, res, next) => {
     return graphql({
       context: options.createContext(req),
       formatError(err){
-        let er = err['originalError'] || err
-        er = er['errors'] ? er['errors'][0] : er
-        er = wrapError(er)
+        const er = decorateError(err)
+        er['id'] = uuidv4()
 
-        // When error is occured, graphql composes its response,
-        // instead of forwarding to last.  So, log them here.
-        const isInternal = !er['code'] && !er['statusCode']
-        const level = isInternal ? 'error' : 'info'
-        req.log[level]({ err })
+        const level = er.statusCode >= 500 ? 'error' : 'info'
+        req.log[level]({ err: er })
 
-        return formatError(er)
+        return {
+          id: er['id'],
+          code: er.code,
+          statusCode: er.statusCode,
+          message: er.message,
+          extra: er.extra,
+        }
       },
       ...options,
     })(req, res)
     .catch(next)
   }
+}
+
+export const decorateError = er => {
+  if(er.code && er.statusCode) { return er }
+  if(!er['originalError']) {
+    return wrapError(er, InvalidGraphqlSyntax)
+  }
+
+  er = er.originalError
+  if(er.code && er.statusCode) { return er }
+  return wrapError(er, InternalError)
 }

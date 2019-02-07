@@ -21,7 +21,8 @@
     "graphql-tools": "^4.0.3",
     "jsonwebtoken": "^8.4.0",
     "pino": "^5.10.8",
-    "pino-http": "^4.1.0"
+    "pino-http": "^4.1.0",
+    "short-uuid": "^3.1.0"
   },
   "devDependencies": {
     "@types/aws-serverless-express": "^3.3.0",

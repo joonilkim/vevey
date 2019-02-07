@@ -1,5 +1,5 @@
 import * as assert from 'assert-err'
-import { generate as generateUUID } from 'short-uuid'
+import { generate as uuid } from 'short-uuid'
 import * as bcrypt from 'bcrypt'
 import {
   isEmpty,
@@ -30,7 +30,7 @@ export const UserSchema = new dynamoose.Schema({
   id: {
     type: String,
     hashKey: true,
-    default: generateUUID
+    default: uuid,
   },
   email: {
     type: String,

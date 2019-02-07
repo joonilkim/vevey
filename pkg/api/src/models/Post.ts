@@ -1,5 +1,5 @@
 import * as assert from 'assert-err'
-import { generate as generateUUID } from 'short-uuid'
+import { generate as uuid } from 'short-uuid'
 import { UpdateOption } from 'dynamoose'
 import { pickBy, isEmpty, wrapError, NoPermission } from '@vevey/common'
 import { dynamoose } from '../connectors/dynamoose'
@@ -64,7 +64,7 @@ export class Post {
     me: { id }, params: { contents }
   ): Promise<PostResponse> {
     const m = new Model({
-      id: generateUUID(),
+      id: uuid(),
       pos: Date.now(),
       authorId: me.id,
       ...params,

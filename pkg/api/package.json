@@ -28,7 +28,7 @@
     "express-graphql": "^0.6.0",
     "graphql": "^0.13.0",
     "graphql-tools": "^4.0.3",
-    "short-uuid": "^3.1.0"
+    "uuid": "^3.3.2"
   },
   "devDependencies": {
     "@types/aws-serverless-express": "^3.3.0",

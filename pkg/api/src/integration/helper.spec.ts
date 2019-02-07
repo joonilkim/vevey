@@ -35,8 +35,8 @@ export const print = data => {
 }
 
 export const throwIfError = r => {
-  if(!r.body.errors)
-    return r
+  if(!r.body.errors) { return r }
+
   const code = r.body.errors[0]['code'] || 'Error'
   throw new Error(`${code}: ${r.body.errors[0].message}`)
 }
