@@ -1,15 +1,22 @@
-import * as dynamoose from 'dynamoose'
+import * as db from 'dynamoose'
 
-if(process.env.DYNAMODB_ENDPOINT) {
-  dynamoose.AWS.config.update({
-    region: 'localhost'
-  })
-  dynamoose.local(process.env.DYNAMODB_ENDPOINT)
+if(process.env.NODE_ENV === 'test' &&
+    !process.env.DYNAMODB_ENDPOINT) {
+  throw new Error('Test against remote dynamodb is not allowed.')
 }
 
-dynamoose.setDefaults({
+if(process.env.DYNAMODB_ENDPOINT) {
+  db.AWS.config.update({
+    region: 'localhost'
+  })
+  db.local(process.env.DYNAMODB_ENDPOINT)
+}
+
+db.setDefaults({
   create: process.env.NODE_ENV !== 'production',
   prefix: process.env.DYNAMODB_PREFIX,
 })
 
-export default dynamoose
+
+export const dynamoose = db
+

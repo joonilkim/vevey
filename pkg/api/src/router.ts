@@ -28,7 +28,7 @@ export function router() {
     ...models,
   })
 
-  router.use('/gql', graphqlHttp({
+  router.use('/app', graphqlHttp({
     schema,
     graphiql: env === 'development',
     createContext,

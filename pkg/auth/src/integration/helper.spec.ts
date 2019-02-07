@@ -1,6 +1,10 @@
 import * as _request from 'supertest'
+import * as express from 'express'
+import { router } from '../router'
 import { dynamoose } from '../connectors/dynamoose'
 
+export const createApp = () =>
+  express().use(router())
 
 export const randStr = () =>
   Math.random().toString(36).substring(2, 15)
@@ -10,7 +14,7 @@ export const randInt = (max=10000, min=0) =>
 
 export const request = app =>
   _request(app)
-    .post('/api/gql')
+    .post('/auth')
     .set('x-apigateway-event', '{}')
     .set('x-apigateway-context', '{}')
 

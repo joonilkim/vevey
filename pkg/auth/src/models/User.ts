@@ -67,7 +67,7 @@ export const UserSchema = new dynamoose.Schema({
   saveUnknown: false,
 })
 
-const Model = dynamoose.model('Users', UserSchema)
+const Model = dynamoose.model('User', UserSchema)
 
 const NIL = '_'
 

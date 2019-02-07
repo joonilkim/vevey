@@ -72,3 +72,7 @@ export const omitBy = (o, pred) => {
 }
 
 export const times = (n: number) => (Array(n).fill(0).map((_, i) => i))
+
+export const isEmpty = s =>
+  typeof s === 'object' ? !!Object.keys(s).length : !!s
+

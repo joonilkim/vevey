@@ -17,7 +17,7 @@ describe('handler', () => {
   describe('should respond ping', () => {
     it('should be called', async () => {
       const event = makeEvent({
-        path: '/api/gql',
+        path: '/api/auth',
         body: JSON.stringify({
           query: '{ ping }'
         }),

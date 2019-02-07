@@ -1,58 +1,245 @@
-## Cognito User Pool
+locals {
+  target      = "${path.root}/../pkg/auth"
+  dist        = "lambda.zip"
+}
 
-resource "aws_cognito_user_pool" "_" {
-  name = "auth.${var.domain}"
+## DynamoDB
 
-  alias_attributes         = [ "email" ]
-  auto_verified_attributes = [ "email" ]
+resource "aws_dynamodb_table" "user" {
+  name = "${var.dynamodb_prefix}User"
 
-  admin_create_user_config {
-    allow_admin_create_user_only = false
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "id"
+
+  attribute {
+    name = "id"
+    type = "S"
   }
 
-  # email_configuration {
-  #   reply_to_email_address = "foo.bar@baz"
-  # }
-
-  password_policy {
-    minimum_length    = 8
-    require_uppercase = true
-    require_lowercase = true
-    require_numbers   = true
-    require_symbols   = true
+  attribute {
+    name = "email"
+    type = "S"
   }
 
-  schema {
-    name                = "email"
-    attribute_data_type = "String"
-    mutable             = false
-    required            = true
-  }
-
-  schema {
-    name                = "nickname"
-    attribute_data_type = "String"
-    mutable             = true
-    required            = true
-  }
-
-  verification_message_template {
-    default_email_option = "CONFIRM_WITH_LINK"
+  global_secondary_index {
+    name               = "byEmail"
+    hash_key           = "email"
+    projection_type    = "ALL"
   }
 
   lifecycle {
-    ignore_changes  = [ "schema" ]
+    prevent_destroy = true
   }
 }
 
-resource "aws_cognito_user_pool_client" "_" {
-  name = "auth.${var.domain}"
+resource "aws_dynamodb_table" "token" {
+  name = "${var.dynamodb_prefix}Token"
 
-  user_pool_id    = "${aws_cognito_user_pool._.id}"
-  generate_secret = false
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "userId"
+  range_key    = "token"
 
-  explicit_auth_flows = [
-    "ADMIN_NO_SRP_AUTH",
-    "USER_PASSWORD_AUTH",
-  ]
+  attribute {
+    name = "userId"
+    type = "S"
+  }
+
+  attribute {
+    name = "token"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "exp"
+    enabled        = true
+  }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
+
+## Role
+
+data "aws_iam_policy_document" "_" {
+  statement {
+    actions   = ["sts:AssumeRole"]
+    effect    = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = [
+        "lambda.amazonaws.com",
+      ]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "lambda" {
+  statement {
+    effect    = "Allow"
+    actions   = [
+      "cloudwatch:*",
+      "cognito-identity:ListIdentityPools",
+      "cognito-sync:GetCognitoEvents",
+      "cognito-sync:SetCognitoEvents",
+      "events:*",
+      "iam:ListAttachedRolePolicies",
+      "iam:ListRolePolicies",
+      "iam:ListRoles",
+      "iam:PassRole",
+      "kinesis:DescribeStream",
+      "kinesis:ListStreams",
+      "kinesis:PutRecord",
+      "lambda:*",
+      "logs:*",
+      "s3:*",
+      "sns:ListSubscriptions",
+      "sns:ListSubscriptionsByTopic",
+      "sns:ListTopics",
+      "sns:Subscribe",
+      "sns:Unsubscribe",
+    ]
+    resources = ["*"]
+  }
+
+  statement = {
+    effect    = "Allow"
+    actions   = [
+      "dynamodb:*",
+    ]
+    resources = [
+      "arn:aws:dynamodb:*:*:table/${var.dynamodb_prefix}User",
+      "arn:aws:dynamodb:*:*:table/${var.dynamodb_prefix}Token",
+    ]
+  }
+
+  statement = {
+    effect    = "Deny"
+    actions   = [
+      "dynamodb:CreateTable",
+      "dynamodb:DeleteTable",
+      "dynamodb:CreateBackup",
+      "dynamodb:DeleteBackup",
+      "dynamodb:UpdateContinuousBackup",
+      "dynamodb:Purchase*",
+      "dynamodb:Restore*",
+    ]
+    resources = [ "*" ]
+  }
+
+}
+
+resource "aws_iam_role" "_" {
+  name = "auth-lambda.${var.domain}"
+  assume_role_policy = "${data.aws_iam_policy_document._.json}"
+}
+
+resource "aws_iam_role_policy" "_" {
+  role    = "${aws_iam_role._.id}"
+  policy  = "${data.aws_iam_policy_document.lambda.json}"
+}
+
+## Lambda Function
+
+resource "aws_lambda_function" "_" {
+  filename      = "${local.target}/${local.dist}"
+
+  # not allows '.' character for function name
+  function_name = "${replace("auth.${var.domain}",".","-")}"
+  handler       = "dist/index.handler"
+  runtime       = "nodejs8.10"
+  publish       = true
+  role          = "${aws_iam_role._.arn}"
+
+  memory_size   = 1024
+  timeout       = 10
+
+  environment {
+    variables = {
+      NODE_ENV = "production"
+      DYNAMODB_PREFIX = "${var.dynamodb_prefix}"
+    }
+  }
+}
+
+# Use deploy script cause of terraform's downtime
+resource "null_resource" "deploy" {
+  triggers {
+    hash = "${base64sha256(file("${local.target}/${local.dist}"))}"
+  }
+
+  provisioner "local-exec" {
+    command     = "make deploy"
+    working_dir = "${local.target}"
+
+    environment {
+      function_name = "${aws_lambda_function._.function_name}"
+      zip_file      = "fileb://${aws_lambda_function._.filename}"
+    }
+  }
+}
+
+## API Gateway
+
+data "aws_api_gateway_rest_api" "_" {
+  name = "${var.apig_name}"
+}
+
+resource "aws_api_gateway_resource" "_" {
+  rest_api_id = "${data.aws_api_gateway_rest_api._.id}"
+  parent_id   = "${var.apig_root_id}"
+  path_part   = "auth"
+}
+
+resource "aws_api_gateway_method" "_" {
+  rest_api_id   = "${data.aws_api_gateway_rest_api._.id}"
+  resource_id   = "${aws_api_gateway_resource._.id}"
+  http_method   = "ANY"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "_" {
+  rest_api_id = "${data.aws_api_gateway_rest_api._.id}"
+  resource_id = "${aws_api_gateway_resource._.id}"
+  http_method = "${aws_api_gateway_method._.http_method}"
+
+  integration_http_method = "POST"
+
+  type = "AWS_PROXY"
+  uri  = "${aws_lambda_function._.invoke_arn}"
+}
+
+data "aws_caller_identity" "_" {}
+
+resource "aws_lambda_permission" "_" {
+  action        = "lambda:InvokeFunction"
+  function_name = "${aws_lambda_function._.arn}"
+  principal     = "apigateway.amazonaws.com"
+
+  # The /*/*/* part allows invocation from any stage, method and resource path
+  # within API Gateway REST API.
+  # arn:aws:execute-api:region:account-id:api-id/stage/http-method/Resource-path
+  source_arn =
+  "arn:aws:execute-api:${var.region}:${data.aws_caller_identity._.account_id}:${data.aws_api_gateway_rest_api._.id}/${var.stage}/*/api/auth"
+}
+
+resource "aws_api_gateway_deployment" "_" {
+  depends_on = ["aws_api_gateway_integration._"]
+
+  rest_api_id = "${data.aws_api_gateway_rest_api._.id}"
+  stage_name  = "${var.stage}"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  # force update on dependencies change
+  variables = {
+    "dependencies" = "${
+      aws_api_gateway_integration._.uri
+    }-${
+      aws_lambda_permission._.source_arn
+    }"
+  }
+}
+

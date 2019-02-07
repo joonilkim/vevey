@@ -1,9 +1,8 @@
 import * as assert from 'assert-err'
 import { generate as generateUUID } from 'short-uuid'
-import { pickBy, Forbidden } from '@vevey/common'
-import dynamoose from '../connectors/dynamoose'
-
-type UpdateOption = dynamoose.UpdateOption
+import { UpdateOption } from 'dynamoose'
+import { pickBy, isEmpty, Forbidden } from '@vevey/common'
+import { dynamoose } from '../connectors/dynamoose'
 
 export interface PostResponse {
   id?: string
@@ -50,7 +49,7 @@ export const PostSchema = new dynamoose.Schema({
   saveUnknown: false,
 })
 
-export const Model = dynamoose.model('Posts', PostSchema)
+export const Model = dynamoose.model('Post', PostSchema)
 
 export class Post {
   static Model = Model
@@ -79,7 +78,7 @@ export class Post {
     me: { id }, id: string, { contents, pos }
   ): Promise<PostResponse> {
     const key = { id }
-    const p = pickBy({ contents, pos }, v => !!v)
+    const p = pickBy({ contents, pos }, v => !isEmpty(v))
     const ops = {
       condition: 'authorId = :authorId',
       conditionValues: { authorId: me.id },

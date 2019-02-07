@@ -31,7 +31,7 @@ export function router() {
     ...models,
   })
 
-  router.use('/gql', graphqlHttp({
+  router.use('/auth', graphqlHttp({
     schema,
     graphiql: env === 'development',
     createContext,

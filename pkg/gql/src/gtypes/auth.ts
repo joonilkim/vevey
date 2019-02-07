@@ -1,7 +1,7 @@
 import * as assert from 'assert-err'
 import { defaultFieldResolver } from 'graphql'
 import { SchemaDirectiveVisitor } from 'graphql-tools'
-import { Unauthorized } from '@vevey/common'
+import { Unauthorized, isEmpty } from '@vevey/common'
 
 class AuthDirective extends SchemaDirectiveVisitor {
   visitFieldDefinition(field, detail) {
@@ -14,10 +14,10 @@ class AuthDirective extends SchemaDirectiveVisitor {
     field.resolve = function(...args){
       const me = (args[2]['me'] || {})['id']
       if(role === 'User') {
-        assert(!!me, Unauthorized)
+        assert(!isEmpty(me), Unauthorized)
       }
       if(role === 'Guest') {
-        assert(!me, Unauthorized)
+        assert(isEmpty(me), Unauthorized)
       }
 
       return resolve.apply(this, args)

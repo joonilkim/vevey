@@ -4,10 +4,10 @@ import * as chaiAsPromised from 'chai-as-promised'
 import * as bcrypt from 'bcrypt'
 import { User, UserStatus, UserResponse } from '../models/User'
 import { Token, TokenResponse } from '../models/Token'
-import { app } from '../app'
 import {
   // @ts-ignore
   print,
+  createApp,
   gqlRequest,
   truncate,
   throwIfError,
@@ -15,6 +15,7 @@ import {
 
 const saltRound = 8
 
+const app = createApp()
 
 //// helpers ////
 

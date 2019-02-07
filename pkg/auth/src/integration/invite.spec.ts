@@ -2,14 +2,16 @@ import * as chai from 'chai'
 import * as chaiAsPromised from 'chai-as-promised'
 import { User } from '../models/User'
 import { Token } from '../models/Token'
-import { app } from '../app'
 import {
   // @ts-ignore
   print,
+  createApp,
   gqlRequest,
   truncate,
   throwIfError,
 } from './helper.spec'
+
+const app = createApp()
 
 function invite({ email }){
   const query = `mutation {

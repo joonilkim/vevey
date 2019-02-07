@@ -110,6 +110,10 @@ resource "aws_s3_bucket_policy" "web" {
   policy = "${data.aws_iam_policy_document.web.json}"
 }
 
+data "aws_api_gateway_rest_api" "_" {
+  name = "${var.apig_name}"
+}
+
 ## Cloudfront
 
 resource "aws_cloudfront_distribution" "_" {
@@ -125,14 +129,12 @@ resource "aws_cloudfront_distribution" "_" {
     origin_id   = "${local.web_origin_id}"
 
     s3_origin_config {
-      origin_access_identity = "${
-        aws_cloudfront_origin_access_identity._.cloudfront_access_identity_path
-      }"
+      origin_access_identity = "${aws_cloudfront_origin_access_identity._.cloudfront_access_identity_path}"
     }
   }
 
   origin {
-    domain_name = "${var.apig_id}.execute-api.${var.region}.amazonaws.com"
+    domain_name = "${data.aws_api_gateway_rest_api._.id}.execute-api.${var.region}.amazonaws.com"
     origin_id   = "${local.api_origin_id}"
 
     origin_path = "/${var.stage}"

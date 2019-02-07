@@ -14,8 +14,8 @@ variable "web_bucket" {
   description = "A S3 bucket for /"
 }
 
-variable "apig_id" {
-  description = "An API Gateway id"
+variable "apig_name" {
+  description = "An API Gateway name"
 }
 
 variable "log_bucket" {

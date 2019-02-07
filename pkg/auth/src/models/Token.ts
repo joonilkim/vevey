@@ -39,7 +39,7 @@ export const TokenSchema = new dynamoose.Schema({
   },
 })
 
-const Model = dynamoose.model('Tokens', TokenSchema)
+const Model = dynamoose.model('Token', TokenSchema)
 
 export class Token {
   static Model = Model
@@ -98,7 +98,7 @@ export class Token {
     const shouldExistsInDB = coroutine(function*(){
       const data = yield Model.get(
         { userId: decoded.id, token: refreshToken })
-      assert(!!data && !!data['userId'], NotFound)
+      assert(data && data['userId'], NotFound)
       return data
     })
 

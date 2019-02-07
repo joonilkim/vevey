@@ -54,15 +54,81 @@ data "aws_iam_policy_document" "_" {
   }
 }
 
+data "aws_iam_policy_document" "lambda" {
+  statement {
+    effect    = "Allow"
+    actions   = [
+      "cloudwatch:*",
+      "cognito-identity:ListIdentityPools",
+      "cognito-sync:GetCognitoEvents",
+      "cognito-sync:SetCognitoEvents",
+      "events:*",
+      "iam:ListAttachedRolePolicies",
+      "iam:ListRolePolicies",
+      "iam:ListRoles",
+      "iam:PassRole",
+      "kinesis:DescribeStream",
+      "kinesis:ListStreams",
+      "kinesis:PutRecord",
+      "lambda:*",
+      "logs:*",
+      "s3:*",
+      "sns:ListSubscriptions",
+      "sns:ListSubscriptionsByTopic",
+      "sns:ListTopics",
+      "sns:Subscribe",
+      "sns:Unsubscribe",
+    ]
+    resources = ["*"]
+  }
+
+  statement = {
+    effect    = "Allow"
+    actions   = [
+      "dynamodb:*",
+    ]
+    resources = [
+      "arn:aws:dynamodb:*:*:table/${var.dynamodb_prefix}Post",
+    ]
+  }
+
+  statement = {
+    effect    = "Deny"
+    actions   = [
+      "dynamodb:CreateTable",
+      "dynamodb:DeleteTable",
+      "dynamodb:CreateBackup",
+      "dynamodb:DeleteBackup",
+      "dynamodb:UpdateContinuousBackup",
+      "dynamodb:Purchase*",
+      "dynamodb:Restore*",
+    ]
+    resources = [ "*" ]
+  }
+
+  statement = {
+    sid       = "ReadOnly"
+    effect    = "Allow"
+    actions   = [
+      "dynamodb:BatchGet*",
+      "dynamodb:ConditionCheck*",
+      "dynamodb:Describe*",
+      "dynamodb:Get*",
+    ]
+    resources = [
+      "arn:aws:dynamodb:*:*:table/${var.dynamodb_prefix}User",
+    ]
+  }
+}
+
 resource "aws_iam_role" "_" {
   name = "api-lambda.${var.domain}"
   assume_role_policy = "${data.aws_iam_policy_document._.json}"
 }
 
-# Provides full access to Lambda, S3, DynamoDB, CloudWatch Metrics and Logs.
-resource "aws_iam_role_policy_attachment" "_" {
-  role       = "${aws_iam_role._.id}"
-  policy_arn = "arn:aws:iam::aws:policy/AWSLambdaFullAccess"
+resource "aws_iam_role_policy" "_" {
+  role    = "${aws_iam_role._.id}"
+  policy  = "${data.aws_iam_policy_document.lambda.json}"
 }
 
 ## Lambda Function
@@ -71,7 +137,7 @@ resource "aws_lambda_function" "_" {
   filename      = "${local.target}/${local.dist}"
 
   # not allows '.' character for function name
-  function_name = "${replace("api.${var.domain}",".","-")}"
+  function_name = "${replace("app.${var.domain}",".","-")}"
   handler       = "dist/index.handler"
   runtime       = "nodejs8.10"
   publish       = true
@@ -115,10 +181,16 @@ resource "aws_api_gateway_rest_api" "_" {
   minimum_compression_size = "1000"
 }
 
-resource "aws_api_gateway_resource" "_" {
+resource "aws_api_gateway_resource" "root" {
   rest_api_id = "${aws_api_gateway_rest_api._.id}"
   parent_id   = "${aws_api_gateway_rest_api._.root_resource_id}"
-  path_part   = "{proxy+}"
+  path_part   = "api"
+}
+
+resource "aws_api_gateway_resource" "_" {
+  rest_api_id = "${aws_api_gateway_rest_api._.id}"
+  parent_id   = "${aws_api_gateway_resource.root.id}"
+  path_part   = "app"
 }
 
 resource "aws_api_gateway_method" "_" {
@@ -134,7 +206,6 @@ resource "aws_api_gateway_integration" "_" {
   http_method = "${aws_api_gateway_method._.http_method}"
 
   integration_http_method = "POST"
-  timeout_milliseconds    = 9000
 
   type = "AWS_PROXY"
   uri  = "${aws_lambda_function._.invoke_arn}"
@@ -150,7 +221,8 @@ resource "aws_lambda_permission" "_" {
   # The /*/*/* part allows invocation from any stage, method and resource path
   # within API Gateway REST API.
   # arn:aws:execute-api:region:account-id:api-id/stage/http-method/Resource-path
-  source_arn = "arn:aws:execute-api:${var.region}:${data.aws_caller_identity._.account_id}:${aws_api_gateway_rest_api._.id}/${var.stage}/*/*"
+  source_arn =
+  "arn:aws:execute-api:${var.region}:${data.aws_caller_identity._.account_id}:${aws_api_gateway_rest_api._.id}/${var.stage}/*/api/app"
 }
 
 resource "aws_api_gateway_deployment" "_" {

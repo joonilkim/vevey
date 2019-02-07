@@ -11,5 +11,5 @@ variable "stage" {
 }
 
 variable "dynamodb_prefix" {
-  description = "example_"
+  default = "example_"
 }

@@ -1,13 +1,12 @@
 import * as chai from 'chai'
 import * as chaiAsPromised from 'chai-as-promised'
-import * as express from 'express'
 import * as jwt from 'jsonwebtoken'
 import { times } from '@vevey/common'
 import { Post, PostResponse } from '../models/Post'
-import { router } from '../router'
 import {
   // @ts-ignore
   print,
+  createApp,
   randInt,
   randStr,
   truncate,
@@ -15,14 +14,10 @@ import {
   throwIfError,
 } from './helper.spec'
 
-//// Create App ////
+//// Delaration ////
 
 process.env.TOKEN_SECRET = 'testtokensecret'
-const app = express()
-app.use(router())
-
-
-//// Delaration ////
+const app = createApp()
 
 const PostFields = [
   'id', 'authorId',
