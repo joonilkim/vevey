@@ -22,7 +22,7 @@ export const gqlRequest = (
   app, query: string, token?: { accessToken }
 ) => {
   const headers = token ?
-    { Authorization: token.accessToken } : {}
+    { Authorization: `Bearer ${token.accessToken}` } : {}
 
   return request(app)
     .set(headers)
