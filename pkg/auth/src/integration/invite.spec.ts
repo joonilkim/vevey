@@ -122,7 +122,7 @@ describe('Invite', function(){
 
     it('should not pass with invalid email', async () => {
       await invite({ email: 'aa@invalid'})
-        .should.be.rejectedWith('ValidationError')
+        .should.be.rejectedWith('InvalidInput')
     })
 
   })

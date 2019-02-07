@@ -2,12 +2,9 @@ import * as assert from 'assert-err'
 import { Context } from '../Context'
 import { UserStatus } from '../models/User'
 import {
-  BadRequest,
-  ValidationError,
+  InvalidInput,
+  MissingParameter,
   Unauthorized,
-  Conflict,
-  NotFound,
-  wrapError,
 } from '@vevey/common'
 
 export const schema = `
@@ -84,13 +81,7 @@ function inviteMe(
   { email },
   { me, User }: Context,
 ) {
-  const suppressConflict = er => {
-    if(er instanceof Conflict) return {}
-    throw er
-  }
-
   return User.invite({ email })
-    .catch(suppressConflict)
     .then(returnSuccess)
 }
 
@@ -111,38 +102,28 @@ function createToken(
   { me, User, Token }: Context,
 ) {
   const shouldExists = (user?) => {
-    if(user && user.id)
-      return user
-    throw BadRequest(`Invalid email or password`)
-  }
-
-  // redirect NotFound to Unauthorized for security reason
-  const suppressNotFound = er => {
-    if(er instanceof NotFound)
-      throw wrapError(<Error>er, Unauthorized)
-    throw er
+    assert(user && user.id, Unauthorized)
+    return user
   }
 
   const byCredential = () => {
-    assert(!!email && !!pwd, ValidationError, `Invalid email or pwd`)
+    assert(!!email && !!pwd, MissingParameter)
 
     return User.findByEmail(email, [UserStatus.Confirmed])
       .then(shouldExists)
       .then(({ id }) => User.getUserByPwd(id, pwd))
       .then(user => Token.create({ id: user.id }))
-      .catch(suppressNotFound)
   }
 
   const byRefreshToken = () => {
-    assert(!!refreshToken, ValidationError, `Invalid refreshToken`)
+    assert(!!refreshToken, MissingParameter)
 
     return Token.createByRefreshToken(refreshToken)
-      .catch(suppressNotFound)
   }
 
   if(grantType === 'credential') { return byCredential() }
   if(grantType === 'refreshToken') { return byRefreshToken() }
-  throw new BadRequest(`Invalid grantType: ${grantType}`)
+  throw new InvalidInput(`Invalid grantType: ${grantType}`)
 }
 
 function changePassword(
@@ -159,14 +140,7 @@ function forgotPassword(
   { email },
   { me, User, Token }: Context,
 ) {
-  // suppress exact message for security reason
-  const suppressNotFound = er => {
-    if(er instanceof NotFound) return {}
-    throw er
-  }
-
   return User.forgotPassword({ email })
-    .catch(suppressNotFound)
     .then(returnSuccess)
 }
 
@@ -175,14 +149,7 @@ function confirmForgotPassword(
   { userId, code, newPwd },
   { me, User, Token }: Context,
 ) {
-  // suppress exact message for security reason
-  const suppressNotFound = er => {
-    if(er instanceof NotFound) return {}
-    throw er
-  }
-
   return User.confirmForgotPassword({ userId, code, newPwd })
-    .catch(suppressNotFound)
     .then(returnSuccess)
 }
 
@@ -191,14 +158,7 @@ function unregister(
   { pwd },
   { me, User, Token }: Context,
 ) {
-  // suppress exact message for security reason
-  const suppressNotFound = er => {
-    if(er instanceof NotFound) return {}
-    throw er
-  }
-
   return User.unregister(me.id, pwd)
-    .catch(suppressNotFound)
     .then(() => Token.revokeAll(me.id))
     .then(returnSuccess)
 }

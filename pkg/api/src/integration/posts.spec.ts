@@ -168,7 +168,7 @@ describe('Post', function(){
       const notMe = randStr()
 
       await updatePost(notMe, p)
-        .should.be.rejectedWith('Forbidden')
+        .should.be.rejectedWith('NoPermission')
     })
   })
 
@@ -233,10 +233,10 @@ describe('Post', function(){
 
     it('should not pass with invalid params', async () => {
       await postsByAuthor(userId, userId, -1)
-        .should.be.rejectedWith('ValidationError')
+        .should.be.rejectedWith('OutOfRangeInput')
 
       await postsByAuthor(userId, userId, 10000)
-        .should.be.rejectedWith('ValidationError')
+        .should.be.rejectedWith('OutOfRangeInput')
     })
   })
 

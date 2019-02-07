@@ -3,9 +3,6 @@ import { gtypes } from '@vevey/gql'
 import * as Query from './Query'
 import * as Mutation from './Mutation'
 
-export * from './wrapError'
-
-
 export const typeDefs = [
   gtypes.auth.schema,
   gtypes.constraint.schema,

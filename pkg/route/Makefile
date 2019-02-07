@@ -1,1 +1,1 @@
-../../support/Makefile
+include ../../support/Makefile

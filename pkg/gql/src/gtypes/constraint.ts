@@ -1,7 +1,10 @@
 import * as assert from 'assert-err'
 import { defaultFieldResolver, } from 'graphql'
 import { SchemaDirectiveVisitor } from 'graphql-tools'
-import { ValidationError } from '@vevey/common'
+import {
+  InvalidInput,
+  OutOfRangeInput,
+} from '@vevey/common'
 
 class ConstraintDirective extends SchemaDirectiveVisitor {
   visitArgumentDefinition(arg, { field }){
@@ -53,40 +56,40 @@ const validators = {
   min(fieldName, arg, val){
     assert(
       typeof val === 'number' && val >= arg,
-      ValidationError,
+      OutOfRangeInput,
       `${fieldName} must be at least ${arg}`)
   },
 
   max(fieldName, arg, val){
     assert(
       typeof val === 'number' && val <= arg,
-      ValidationError,
+      OutOfRangeInput,
       `${fieldName} must be no greater than ${arg}`)
   },
 
   minLength(fieldName, arg, val){
     assert(
       typeof val === 'string' && val.length >= arg,
-      ValidationError,
+      InvalidInput,
       `${fieldName} must be at least ${arg} characters`)
   },
 
   maxLength(fieldName, arg, val){
     assert(
       typeof val === 'string' && val.length <= arg,
-      ValidationError,
+      InvalidInput,
       `${fieldName} must be no greater than ${arg} characters`)
   },
 
   pattern(fieldName, arg, val){
     assert(
       typeof val === 'string' && new RegExp(arg).test(val),
-      ValidationError,
+      InvalidInput,
       `${fieldName} has invalid format`)
   },
 
   format(fieldName, arg, val){
-    assert(typeof val === 'string', ValidationError)
+    assert(typeof val === 'string', InvalidInput)
     if(arg === 'email') { return validateEmail(val) }
     if(arg === 'password') { return validatePassword(val) }
   },
@@ -94,24 +97,24 @@ const validators = {
 
 function validatePassword(pwd){
   if(!/^[a-zA-Z0-9!@#$%^&*()_+}{":;'?/>.<,]{8,}$/.test(pwd))
-    throw new ValidationError(
+    throw new InvalidInput(
       'Password must have at least 8 characters.')
 
   if(!/[a-z]+/.test(pwd))
-    throw new ValidationError(
+    throw new InvalidInput(
       'Password must have at least one lowercase letter.')
 
   if(!/[A-Z]+/.test(pwd))
-    throw new ValidationError(
+    throw new InvalidInput(
       'Password must have at least one uppercase letter.')
 
   if(!/[0-9!@#$%^&*()_+}{":;'?/>.<,]+/.test(pwd))
-    throw new ValidationError(
+    throw new InvalidInput(
       'Password must have at least one digit or non letter.')
 }
 
 function validateEmail(email){
   if(!/^\S+@\S+\.\S+$/.test(email))
-    throw new ValidationError('Invalid email format.')
+    throw new InvalidInput('Invalid email format.')
 }
 

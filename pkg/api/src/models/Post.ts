@@ -1,7 +1,7 @@
 import * as assert from 'assert-err'
 import { generate as generateUUID } from 'short-uuid'
 import { UpdateOption } from 'dynamoose'
-import { pickBy, isEmpty, Forbidden } from '@vevey/common'
+import { pickBy, isEmpty, wrapError, NoPermission } from '@vevey/common'
 import { dynamoose } from '../connectors/dynamoose'
 
 export interface PostResponse {
@@ -77,6 +77,12 @@ export class Post {
   static update(
     me: { id }, id: string, { contents, pos }
   ): Promise<PostResponse> {
+    const handleConditionFailed = er => {
+      if (er.code === 'ConditionalCheckFailedException')
+        throw wrapError(er, NoPermission)
+      throw er
+    }
+
     const key = { id }
     const p = pickBy({ contents, pos }, v => !isEmpty(v))
     const ops = {
@@ -85,9 +91,16 @@ export class Post {
       returnValues: 'ALL_NEW',
     }
     return <Promise<any>>Model.update(key, p, <UpdateOption><any>ops)
+      .catch(handleConditionFailed)
   }
 
   static delete(me: { id }, id: string): Promise<void> {
+    const handleConditionFailed = er => {
+      if (er.code === 'ConditionalCheckFailedException')
+        throw wrapError(er, NoPermission)
+      throw er
+    }
+
     const key = { id }
     const p = { contents: null, pos: null }
     const ops = {
@@ -96,12 +109,13 @@ export class Post {
     }
     return Model.update(key, { $DELETE: p }, <UpdateOption><any>ops)
       .then(returnNothing)
+      .catch(handleConditionFailed)
   }
 
   static allByAuthor(
     me: { id }, authorId: string, { pos, limit }
   ): Promise<PostPage> {
-    assert(me.id === authorId, Forbidden)
+    assert(me.id === authorId, NoPermission)
 
     return Model
       .query('authorId').eq(authorId)
@@ -118,7 +132,7 @@ export class Post {
       post && post.contents ? post : null
 
     const shouldHavePerm = post => {
-      if(post) assert(me.id === post.authorId, Forbidden)
+      if(post) assert(me.id === post.authorId, NoPermission)
       return post
     }
 

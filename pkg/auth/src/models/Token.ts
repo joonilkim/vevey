@@ -1,6 +1,10 @@
 import { coroutine, promisify } from 'bluebird'
 import * as assert from 'assert-err'
-import { NotFound } from '@vevey/common'
+import {
+  InvalidInput,
+  Unauthorized,
+  wrapError
+} from '@vevey/common'
 import * as jwt from 'jsonwebtoken'
 import { dynamoose } from '../connectors/dynamoose'
 
@@ -64,8 +68,6 @@ export class Token {
       exp: nowInSec() + Token.refreshExpiresIn
     }
 
-    const sign = payload => promisify(jwt.sign)(payload, Token.secret)
-
     const saveToken = (tokens: TokenResponse) =>
       // `Model.create` use `overwrite=false`,
       // This cause `attribute_not_exists` option to be added.
@@ -81,8 +83,8 @@ export class Token {
       .then(() => tokens)
 
     return Promise.all([
-      sign(accessTokenPayload),
-      sign(refreshTokenPayload),
+      Token.sign(accessTokenPayload),
+      Token.sign(refreshTokenPayload),
     ])
       .then(([accessToken, refreshToken]) => ({
         expiresIn: Token.expiresIn,
@@ -98,7 +100,7 @@ export class Token {
     const shouldExistsInDB = coroutine(function*(){
       const data = yield Model.get(
         { userId: decoded.id, token: refreshToken })
-      assert(data && data['userId'], NotFound)
+      assert(data && data['userId'], Unauthorized)
       return data
     })
 
@@ -110,10 +112,16 @@ export class Token {
   })
 
   static verify(token: string): Promise<Payload> {
-    return new Promise((r, j) => (
+    return <any>new Promise((r, j) => (
       jwt.verify(token, Token.secret, (er, decoded) =>
         er ? j(er) : r(<Payload>decoded)
       )))
+      .catch(er => wrapJwtError(er))
+  }
+
+  static sign(payload: Payload): Promise<string> {
+    return <any>promisify(jwt.sign)(payload, Token.secret)
+      .catch(er => wrapJwtError(er))
   }
 
   static revoke(userId, refreshToken): Promise<void> {
@@ -158,3 +166,14 @@ export const createModel = (options={}) => {
 const nowInSec = () => Math.floor(Date.now() / 1000)
 
 const returnVoid = () => null
+
+const wrapJwtError = er => {
+  if (er.name === 'ValidationError') {
+    throw wrapError(er, InvalidInput)
+  }
+  if(er.name === 'TokenExpiredError' ||
+      er.name === 'JsonWebTokenError') {
+    throw wrapError(er, Unauthorized)
+  }
+  throw er
+}

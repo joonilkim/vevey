@@ -22,7 +22,8 @@ export const graphqlHttp = (options: Options) => {
 
         // When error is occured, graphql composes its response,
         // instead of forwarding to last.  So, log them here.
-        const level = er['isUserError'] ? 'info' : 'error'
+        const isInternal = !er['code'] && !er['statusCode']
+        const level = isInternal ? 'error' : 'info'
         req.log[level]({ err })
 
         return formatError(er)

@@ -1,4 +1,3 @@
-import { Forbidden, wrapError } from '@vevey/common'
 import { Context } from '../Context'
 
 export const schema = `
@@ -44,28 +43,14 @@ function createPost(
 function updatePost(
   _, { id, contents, pos }, { me, Post }: Context,
 ) {
-  const _wrapError = er => {
-    if (er.code === 'ConditionalCheckFailedException')
-      throw wrapError(er, Forbidden)
-    throw er
-  }
-
   return Post.update(me, id, { contents, pos })
-    .catch(_wrapError)
 }
 
 function deletePost(
   _, { id }, { me, Post }: Context,
 ) {
-  const _wrapError = er => {
-    if (er.code === 'ConditionalCheckFailedException')
-      throw wrapError(er, Forbidden)
-    throw er
-  }
-
   return Post.delete(me, id)
     .then(returnSuccess)
-    .catch(_wrapError)
 }
 
 const returnSuccess = () => ({ result: true })

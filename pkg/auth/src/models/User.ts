@@ -2,11 +2,12 @@ import * as assert from 'assert-err'
 import { generate as generateUUID } from 'short-uuid'
 import * as bcrypt from 'bcrypt'
 import {
-  BadRequest,
+  isEmpty,
+  InvalidInput,
+  NoPermission,
   Unauthorized,
-  Conflict,
-  NotFound,
-  Forbidden,
+  UserExists,
+  UserDisabled,
 } from '@vevey/common'
 import { dynamoose } from '../connectors/dynamoose'
 
@@ -119,9 +120,9 @@ export class User {
   static invite({ email }): Promise<ConfirmCode> {
     const shouldNotRegistered = (user?) => {
       if(user && user.status === UserStatus.Confirmed)
-        throw new Conflict('Already registered')
+        throw new UserExists()
       if(user && user.status === UserStatus.Inactive)
-        throw new Forbidden('In inactive status')
+        throw new UserDisabled()
       return user
     }
 
@@ -151,7 +152,7 @@ export class User {
   }): Promise<void> {
     const shouldBeInvited = (user?) => {
       if(!user || user.status !== UserStatus.Unconfirmed)
-        throw new Forbidden('Not invited user')
+        throw new NoPermission()
       return user
     }
 
@@ -160,7 +161,7 @@ export class User {
       if(confirmCode.code === code &&
           confirmCode.exp > nowInSec())
         return user
-      throw new BadRequest('Invalid or Expired code')
+      throw new InvalidInput('The code is invalid or expired.')
     }
 
     const updateUser = ({ user, hash }) =>
@@ -185,6 +186,15 @@ export class User {
   }
 
   static forgotPassword({ email }): Promise<ConfirmCode> {
+    const shouldUserExists = (user?) => {
+      assert(!isEmpty(user), InvalidInput)
+      return user
+    }
+
+    const shouldBeConfirmed = (user?) => {
+      assert(user.status === UserStatus.Confirmed, NoPermission)
+      return user
+    }
 
     const confirmCode = {
       code: generateCode(),
@@ -196,6 +206,7 @@ export class User {
         .then(() => user)
 
     return User.findByEmail(email)
+      .then(shouldUserExists)
       .then(shouldBeConfirmed)
       .then(updateUser)
       .then(() => confirmCode)
@@ -209,7 +220,7 @@ export class User {
       if(confirmCode.code === code &&
           confirmCode.exp > nowInSec())
         return user
-      throw new BadRequest('Invalid or Expired code')
+      throw new InvalidInput('The code is invalid or expired.')
     }
 
     const updateUser = ({ user, hash }) =>
@@ -225,7 +236,18 @@ export class User {
       bcrypt.hash(newPwd, User.saltRound)
         .then(hash => ({ user, hash }))
 
+    const shouldUserExists = (user?) => {
+      assert(!isEmpty(user), InvalidInput)
+      return user
+    }
+
+    const shouldBeConfirmed = (user?) => {
+      assert(user.status === UserStatus.Confirmed, NoPermission)
+      return user
+    }
+
     return User.get(userId)
+      .then(shouldUserExists)
       .then(shouldBeConfirmed)
       .then(verifyCode)
       .then(withHash)
@@ -247,25 +269,18 @@ export class User {
   }
 
   static getUserByPwd(id: string, pwd: string): Promise<UserResponse> {
-    const shouldNotNil = async pwd => {
-      if(pwd !== NIL) return
-      throw new Forbidden()
-    }
-
     const verifyPassword = user =>
       bcrypt.compare(pwd, user.pwd)
         .then(res => assert(res, Unauthorized))
         .then(() => user)
 
     const verifyStatus = async (user?) => {
-      assert(!!user, NotFound)
-      assert(user.status === UserStatus.Confirmed,
-        Forbidden, 'User is not in active')
+      assert(!isEmpty(user), InvalidInput)
+      assert(user.status === UserStatus.Confirmed, UserDisabled)
       return user
     }
 
-    return shouldNotNil(pwd)
-      .then(() => User.get(id))
+    return User.get(id)
       .then(verifyStatus)
       .then(verifyPassword)
   }
@@ -306,9 +321,3 @@ function generateCode(){
 const nowInSec = () => Math.floor(Date.now() / 1000)
 
 const returnVoid = () => null
-
-const shouldBeConfirmed = (user?) => {
-  if(!user || user.status !== UserStatus.Confirmed)
-    throw new NotFound()
-  return user
-}
