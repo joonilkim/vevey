@@ -18,70 +18,6 @@ const saltRound = 8
 
 const app = createApp()
 
-//// helpers ////
-
-function createUser ({ email, pwd, name }) {
-  return new User({
-    email,
-    pwd: bcrypt.hashSync(pwd, saltRound),
-    name,
-    status: UserStatus.Confirmed,
-  }).model.save()
-}
-
-function truncateAll() {
-  return Promise.all([
-    truncate(User.Model, ['id']),
-    truncate(Token.Model, ['userId', 'token'])
-  ])
-}
-
-
-//// graphql queries ////
-
-function createToken({ email, pwd }) {
-  const query = `mutation {
-    createToken(
-      grantType: credential
-      email: "${email}"
-      pwd: "${pwd}"
-    ){
-      accessToken,
-      expiresIn,
-      refreshToken,
-    }
-  }`
-  return gqlRequest(app, query)
-    .then(r => throwIfError(r))
-}
-
-function exchangeToken({ refreshToken }) {
-  const query = `mutation {
-    createToken(
-      grantType: refreshToken
-      refreshToken: "${refreshToken}"
-    ){
-      accessToken,
-      expiresIn,
-      refreshToken,
-    }
-  }`
-  return gqlRequest(app, query)
-    .then(r => throwIfError(r))
-}
-
-function getMe(token?) {
-  const query = `query {
-    getMe {
-      id
-      email
-      name
-    }
-  }`
-  return gqlRequest(app, query, token)
-    .then(r => throwIfError(r))
-}
-
 describe('Token', function(){
   this.timeout(10000)
   chai.use(chaiAsPromised);
@@ -170,3 +106,70 @@ describe('Token', function(){
   })
 
 })
+
+
+//// graphql queries ////
+
+function createToken({ email, pwd }) {
+  const query = `mutation {
+    createToken(
+      grantType: credential
+      email: "${email}"
+      pwd: "${pwd}"
+    ){
+      accessToken,
+      expiresIn,
+      refreshToken,
+    }
+  }`
+  return gqlRequest(app, query)
+    .then(r => throwIfError(r))
+}
+
+function exchangeToken({ refreshToken }) {
+  const query = `mutation {
+    createToken(
+      grantType: refreshToken
+      refreshToken: "${refreshToken}"
+    ){
+      accessToken,
+      expiresIn,
+      refreshToken,
+    }
+  }`
+  return gqlRequest(app, query)
+    .then(r => throwIfError(r))
+}
+
+function getMe(token?) {
+  const query = `query {
+    getMe {
+      id
+      email
+      name
+    }
+  }`
+  return gqlRequest(app, query, token)
+    .then(r => throwIfError(r))
+}
+
+
+//// helpers ////
+
+function createUser ({ email, pwd, name }) {
+  return new User({
+    email,
+    pwd: bcrypt.hashSync(pwd, saltRound),
+    name,
+    status: UserStatus.Confirmed,
+  }).model.save()
+}
+
+function truncateAll() {
+  return Promise.all([
+    truncate(User.Model, ['id']),
+    truncate(Token.Model, ['userId', 'token'])
+  ])
+}
+
+

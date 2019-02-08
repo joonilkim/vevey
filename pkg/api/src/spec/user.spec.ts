@@ -31,51 +31,6 @@ const PostFields = [
   'updatedAt',
 ]
 
-//// Graphql queries ////
-
-const queryFields = `
-  id
-  author {
-    id
-    name
-  }
-  contents
-  loc
-  locOpen
-  createdAt
-  updatedAt
-`
-
-const getPost = (me: { id }, id) => {
-  const query = `{
-    post(id: "${id}") {
-      ${queryFields}
-    }
-  }`
-
-  const token = makeToken(me)
-  return gqlRequest(app, query, token)
-    .then(r => throwIfError(r))
-}
-
-const authorPosts = (me: { id }, authorId, limit) => {
-  const query = `{
-    author(id: "${authorId}"){
-      posts(
-        limit: ${limit}
-      ) {
-        items {
-          ${queryFields}
-        }
-      }
-    }
-  }`
-
-  const token = makeToken(me)
-  return gqlRequest(app, query, token)
-    .then(r => throwIfError(r))
-}
-
 describe('User', function(){
   this.timeout(10000)
   chai.use(chaiAsPromised);
@@ -132,6 +87,52 @@ describe('User', function(){
   })
 
 })
+
+//// graphql queries ////
+
+const queryFields = `
+  id
+  author {
+    id
+    name
+  }
+  contents
+  loc
+  locOpen
+  createdAt
+  updatedAt
+`
+
+const getPost = (me: { id }, id) => {
+  const query = `{
+    post(id: "${id}") {
+      ${queryFields}
+    }
+  }`
+
+  const token = makeToken(me)
+  return gqlRequest(app, query, token)
+    .then(r => throwIfError(r))
+}
+
+const authorPosts = (me: { id }, authorId, limit) => {
+  const query = `{
+    author(id: "${authorId}"){
+      posts(
+        limit: ${limit}
+      ) {
+        items {
+          ${queryFields}
+        }
+      }
+    }
+  }`
+
+  const token = makeToken(me)
+  return gqlRequest(app, query, token)
+    .then(r => throwIfError(r))
+}
+
 
 //// Helpers ////
 

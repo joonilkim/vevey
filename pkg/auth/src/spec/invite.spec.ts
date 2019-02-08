@@ -14,50 +14,6 @@ import {
 
 const app = createApp()
 
-function invite({ email }){
-  const query = `mutation {
-    inviteMe(
-      email: "${email}"
-    ){
-      result
-    }
-  }`
-  return gqlRequest(app, query)
-    .then(r => throwIfError(r))
-}
-
-function confirmSignUp({ email, name, code, newPwd }) {
-  const query = `mutation {
-    confirmSignUp(
-      email: "${email}"
-      name: "${name}"
-      code: "${code}"
-      newPwd: "${newPwd}"
-    ){
-      result
-    }
-  }`
-  return gqlRequest(app, query)
-    .then(r => throwIfError(r))
-}
-
-function createToken({ email, pwd }) {
-  const query = `mutation {
-    createToken(
-      grantType: credential
-      email: "${email}"
-      pwd: "${pwd}"
-    ){
-      accessToken,
-      expiresIn,
-      refreshToken,
-    }
-  }`
-  return gqlRequest(app, query)
-    .then(r => throwIfError(r))
-}
-
-
 describe('Invite', function(){
   this.timeout(10000)
   chai.use(chaiAsPromised);
@@ -129,3 +85,51 @@ describe('Invite', function(){
   })
 
 })
+
+
+//// graphql queries ////
+
+function invite({ email }){
+  const query = `mutation {
+    inviteMe(
+      email: "${email}"
+    ){
+      result
+    }
+  }`
+  return gqlRequest(app, query)
+    .then(r => throwIfError(r))
+}
+
+function confirmSignUp({ email, name, code, newPwd }) {
+  const query = `mutation {
+    confirmSignUp(
+      email: "${email}"
+      name: "${name}"
+      code: "${code}"
+      newPwd: "${newPwd}"
+    ){
+      result
+    }
+  }`
+  return gqlRequest(app, query)
+    .then(r => throwIfError(r))
+}
+
+function createToken({ email, pwd }) {
+  const query = `mutation {
+    createToken(
+      grantType: credential
+      email: "${email}"
+      pwd: "${pwd}"
+    ){
+      accessToken,
+      expiresIn,
+      refreshToken,
+    }
+  }`
+  return gqlRequest(app, query)
+    .then(r => throwIfError(r))
+}
+
+

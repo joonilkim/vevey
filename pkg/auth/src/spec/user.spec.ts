@@ -17,105 +17,6 @@ const saltRound = 8
 
 const app = createApp()
 
-//// helpers ////
-
-function createUser ({ email, pwd, name }) {
-  return new User({
-    email,
-    pwd: bcrypt.hashSync(pwd, saltRound),
-    name,
-    status: UserStatus.Confirmed,
-  }).model.save()
-}
-
-function truncateAll() {
-  return Promise.all([
-    truncate(User.Model, ['id']),
-    truncate(Token.Model, ['userId', 'token'])
-  ])
-}
-
-
-//// graphql queries ////
-
-function createToken({ email, pwd }, token?) {
-  const query = `mutation {
-    createToken(
-      grantType: credential
-      email: "${email}"
-      pwd: "${pwd}"
-    ){
-      accessToken,
-      expiresIn,
-      refreshToken,
-    }
-  }`
-  return gqlRequest(app, query, token)
-    .then(r => throwIfError(r))
-}
-
-function changePassword({ email, oldPwd, newPwd }, token?){
-  const query = `mutation {
-    changePassword(
-      oldPwd: "${oldPwd}"
-      newPwd: "${newPwd}"
-    ){
-      result
-    }
-  }`
-  return gqlRequest(app, query, token)
-    .then(r => throwIfError(r))
-}
-
-function forgotPassword({ email }, token?) {
-  const query = `mutation {
-    forgotPassword(
-      email: "${email}"
-    ){
-      result
-    }
-  }`
-  return gqlRequest(app, query, token)
-    .then(r => throwIfError(r))
-}
-
-function confirmForgotPassword({ userId, code, newPwd }, token?) {
-  const query = `mutation {
-    confirmForgotPassword(
-      userId: "${userId}"
-      code: "${code}"
-      newPwd: "${newPwd}"
-    ){
-      result
-    }
-  }`
-  return gqlRequest(app, query, token)
-    .then(r => throwIfError(r))
-}
-
-function unregister({ pwd }, token?) {
-  const query = `mutation {
-    unregister(
-      pwd: "${pwd}"
-    ){
-      result
-    }
-  }`
-  return gqlRequest(app, query, token)
-    .then(r => throwIfError(r))
-}
-
-function getMe(token?) {
-  const query = `query {
-    getMe {
-      id
-      email
-      name
-    }
-  }`
-  return gqlRequest(app, query, token)
-    .then(r => throwIfError(r))
-}
 
 describe('User', function(){
   this.timeout(10000)
@@ -256,4 +157,106 @@ describe('User', function(){
   })
 
 })
+
+
+//// graphql queries ////
+
+function createToken({ email, pwd }, token?) {
+  const query = `mutation {
+    createToken(
+      grantType: credential
+      email: "${email}"
+      pwd: "${pwd}"
+    ){
+      accessToken,
+      expiresIn,
+      refreshToken,
+    }
+  }`
+  return gqlRequest(app, query, token)
+    .then(r => throwIfError(r))
+}
+
+function changePassword({ email, oldPwd, newPwd }, token?){
+  const query = `mutation {
+    changePassword(
+      oldPwd: "${oldPwd}"
+      newPwd: "${newPwd}"
+    ){
+      result
+    }
+  }`
+  return gqlRequest(app, query, token)
+    .then(r => throwIfError(r))
+}
+
+function forgotPassword({ email }, token?) {
+  const query = `mutation {
+    forgotPassword(
+      email: "${email}"
+    ){
+      result
+    }
+  }`
+  return gqlRequest(app, query, token)
+    .then(r => throwIfError(r))
+}
+
+function confirmForgotPassword({ userId, code, newPwd }, token?) {
+  const query = `mutation {
+    confirmForgotPassword(
+      userId: "${userId}"
+      code: "${code}"
+      newPwd: "${newPwd}"
+    ){
+      result
+    }
+  }`
+  return gqlRequest(app, query, token)
+    .then(r => throwIfError(r))
+}
+
+function unregister({ pwd }, token?) {
+  const query = `mutation {
+    unregister(
+      pwd: "${pwd}"
+    ){
+      result
+    }
+  }`
+  return gqlRequest(app, query, token)
+    .then(r => throwIfError(r))
+}
+
+function getMe(token?) {
+  const query = `query {
+    getMe {
+      id
+      email
+      name
+    }
+  }`
+  return gqlRequest(app, query, token)
+    .then(r => throwIfError(r))
+}
+
+
+//// helpers ////
+
+function createUser ({ email, pwd, name }) {
+  return new User({
+    email,
+    pwd: bcrypt.hashSync(pwd, saltRound),
+    name,
+    status: UserStatus.Confirmed,
+  }).model.save()
+}
+
+function truncateAll() {
+  return Promise.all([
+    truncate(User.Model, ['id']),
+    truncate(Token.Model, ['userId', 'token'])
+  ])
+}
+
 
