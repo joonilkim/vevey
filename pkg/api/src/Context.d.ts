@@ -7,6 +7,6 @@ interface AuthPayload {
 
 interface Context {
   me: AuthPayload
-  Post: typeof Post
+  Post: Post
   User: User
 }

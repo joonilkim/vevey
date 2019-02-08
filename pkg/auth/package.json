@@ -30,7 +30,8 @@
     "graphql": "^0.13.0",
     "graphql-tools": "^4.0.3",
     "jsonwebtoken": "^8.4.0",
-    "short-uuid": "^3.1.0"
+    "short-uuid": "^3.1.0",
+    "underscore": "^1.9.1"
   },
   "devDependencies": {
     "@types/aws-serverless-express": "^3.3.0",

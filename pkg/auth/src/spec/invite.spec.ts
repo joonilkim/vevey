@@ -1,8 +1,8 @@
 import './setup'
 import * as chai from 'chai'
 import * as chaiAsPromised from 'chai-as-promised'
-import { User } from '../models/User'
-import { Token } from '../models/Token'
+import * as U from '../models/User'
+import * as T from '../models/Token'
 import {
   // @ts-ignore
   print,
@@ -19,6 +19,8 @@ describe('Invite', function(){
   chai.use(chaiAsPromised);
   chai.should()
 
+  const User = U.init()()
+
   const testUser = {
     email: process.env.TEST_EMAIL || 'success@simulator.amazonses.com',
     pwd: 'testpasS1!',
@@ -30,8 +32,8 @@ describe('Invite', function(){
 
     before(async () => {
       await Promise.all([
-        truncate(User.Model, ['id']),
-        truncate(Token.Model, ['userId', 'token'])
+        truncate(U.Model, ['id']),
+        truncate(T.Model, ['userId', 'token'])
       ])
     })
 

@@ -16,8 +16,8 @@ export function router() {
   const router = express.Router()
 
   const models = {
-    User: User.createModel({ saltRound }),
-    Token: Token.createModel({ secret })
+    User: User.init({ saltRound }),
+    Token: Token.init({ secret })
   }
 
   router.use(logger({ env }))
@@ -28,7 +28,8 @@ export function router() {
 
   const createContext = (req): Context => ({
     me: req['user'],
-    ...models,
+    User: models.User(),
+    Token: models.Token(),
   })
 
   router.use('/auth', graphqlHttp({

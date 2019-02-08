@@ -15,8 +15,8 @@ export function router() {
   const router = express.Router()
 
   const models = {
-    Post: Post.createModel(),
-    User: User.createModel(),
+    Post: Post.init(),
+    User: User.init(),
   }
 
   router.use(logger({ env }))
@@ -27,7 +27,8 @@ export function router() {
 
   const createContext = (req): Context => ({
     me: req['user'],
-    ...models,
+    Post: models.Post(),
+    User: models.User(),
   })
 
   router.use('/app', graphqlHttp({

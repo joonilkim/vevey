@@ -1,5 +1,5 @@
-import { User } from './models/User'
-import { Token } from './models/Token'
+import { UserModel } from './models/User'
+import { TokenModel } from './models/Token'
 
 interface Me {
   id: string
@@ -7,6 +7,6 @@ interface Me {
 
 interface Context {
   me: Me
-  User: typeof User
-  Token: typeof Token
+  User: UserModel
+  Token: TokenModel
 }

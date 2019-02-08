@@ -12,7 +12,7 @@ interface Payload {
   id: string
 }
 
-export interface TokenResponse  {
+export interface TokenPayload  {
   accessToken: string
   expiresIn: number
   refreshToken: string
@@ -43,124 +43,123 @@ export const TokenSchema = new dynamoose.Schema({
   },
 })
 
-const Model = dynamoose.model('Token', TokenSchema)
+export const Model = dynamoose.model('Token', TokenSchema)
 
-export class Token {
-  static Model = Model
-  static secret = 'deadbeef'
-  static expiresIn = 10 * 60
-  static refreshExpiresIn = 30 * 24 * 60 * 60
+let secret = 'deadbeef'
+let expiresIn = 10 * 60
+let refreshExpiresIn = 30 * 24 * 60 * 60
 
-  model
-
-  constructor(params){
-    this.model = new Model(params)
-  }
-
-  static create(payload: Payload): Promise<TokenResponse> {
-    const accessTokenPayload = {
-      ...payload,
-      exp: nowInSec() + Token.expiresIn
-    }
-
-    const refreshTokenPayload = {
-      ...payload,
-      exp: nowInSec() + Token.refreshExpiresIn
-    }
-
-    const saveToken = (tokens: TokenResponse) =>
-      // `Model.create` use `overwrite=false`,
-      // This cause `attribute_not_exists` option to be added.
-      // Because this only applied to hash key, not range key,
-      // when creating a new model with different range key,
-      // it emits `conditional fail error`
-      new Model({
-        userId: payload.id,
-        token: tokens.refreshToken,
-        exp: new Date(refreshTokenPayload.exp * 1000),
-      })
-      .save()
-      .then(() => tokens)
-
-    return Promise.all([
-      Token.sign(accessTokenPayload),
-      Token.sign(refreshTokenPayload),
-    ])
-      .then(([accessToken, refreshToken]) => ({
-        expiresIn: Token.expiresIn,
-        accessToken,
-        refreshToken,
-      }))
-      .then(saveToken)
-  }
-
-  static createByRefreshToken = coroutine(function*(refreshToken){
-    const decoded = yield Token.verify(refreshToken)
-
-    const shouldExistsInDB = coroutine(function*(){
-      const data = yield Model.get(
-        { userId: decoded.id, token: refreshToken })
-      assert(data && data['userId'], Unauthorized)
-      return data
-    })
-
-    const data = yield shouldExistsInDB()
-    const userId = data['userId']
-
-    yield Token.revoke(userId, refreshToken)
-    return Token.create({ id: userId })
-  })
-
-  static verify(token: string): Promise<Payload> {
-    return <any>new Promise((r, j) => (
-      jwt.verify(token, Token.secret, (er, decoded) =>
-        er ? j(er) : r(<Payload>decoded)
-      )))
-      .catch(er => wrapJwtError(er))
-  }
-
-  static sign(payload: Payload): Promise<string> {
-    return <any>promisify(jwt.sign)(payload, Token.secret)
-      .catch(er => wrapJwtError(er))
-  }
-
-  static revoke(userId, refreshToken): Promise<void> {
-    return Model.delete({
-      userId,
-      token: refreshToken,
-    })
-  }
-
-  static revokeAll(userId): Promise<void> {
-    return Token.revokeExpires(userId, false)
-  }
-
-  static revokeExpires(userId, expiresOnly=true): Promise<void> {
-    const keyOnly = ({ userId, token }) =>
-      ({ userId, token })
-
-    const deleteAll = items =>
-      Model.batchDelete(items.map(keyOnly))
-
-    let query = Model
-      .query('userId')
-      .eq(userId)
-      .all()
-
-    if(expiresOnly) {
-      query = query.filter('exp').lt(nowInSec())
-    }
-
-    return query
-      .exec()
-      .then(deleteAll)
-      .then(returnVoid)
-  }
+export const init = (ops=<any>{}) => {
+  secret = ops.secret || secret
+  expiresIn  = ops.expiresIn || expiresIn
+  refreshExpiresIn = ops.refreshExpiresIn || refreshExpiresIn
+  return createModel
 }
 
-export const createModel = (options={}) => {
-  Object.entries(options).forEach(([k, v]) => Token[k] = v)
-  return Token
+export type TokenModel = ReturnType<typeof createModel>
+
+function createModel(){
+  return class Token {
+    static create(payload: Payload): Promise<TokenPayload> {
+      const accessTokenPayload = {
+        ...payload,
+        exp: nowInSec() + expiresIn
+      }
+
+      const refreshTokenPayload = {
+        ...payload,
+        exp: nowInSec() + refreshExpiresIn
+      }
+
+      const saveToken = (tokens: TokenPayload) =>
+        // `Model.create` use `overwrite=false`,
+        // This cause `attribute_not_exists` option to be added.
+        // Because this only applied to hash key, not range key,
+        // when creating a new model with different range key,
+        // it emits `conditional fail error`
+        new Model({
+          userId: payload.id,
+          token: tokens.refreshToken,
+          exp: new Date(refreshTokenPayload.exp * 1000),
+        })
+        .save()
+        .then(() => tokens)
+
+      return Promise.all([
+        Token.sign(accessTokenPayload),
+        Token.sign(refreshTokenPayload),
+      ])
+        .then(([accessToken, refreshToken]) => ({
+          expiresIn,
+          accessToken,
+          refreshToken,
+        }))
+        .then(saveToken)
+    }
+
+    static createByRefreshToken = coroutine(function*(refreshToken){
+      const decoded = yield Token.verify(refreshToken)
+
+      const shouldExistsInDB = coroutine(function*(){
+        const data = yield Model.get(
+          { userId: decoded.id, token: refreshToken })
+        assert(data && data['userId'], Unauthorized)
+        return data
+      })
+
+      const data = yield shouldExistsInDB()
+      const userId = data['userId']
+
+      yield Token.revoke(userId, refreshToken)
+      return Token.create({ id: userId })
+    })
+
+    static verify(token: string): Promise<Payload> {
+      return <any>new Promise((r, j) => (
+        jwt.verify(token, secret, (er, decoded) =>
+          er ? j(er) : r(<Payload>decoded)
+        )))
+        .catch(er => wrapJwtError(er))
+    }
+
+    static sign(payload: Payload): Promise<string> {
+      return <any>promisify(jwt.sign)(payload, secret)
+        .catch(er => wrapJwtError(er))
+    }
+
+    static revoke(userId, refreshToken): Promise<void> {
+      return Model.delete({
+        userId,
+        token: refreshToken,
+      })
+    }
+
+    static revokeAll(userId): Promise<void> {
+      return Token.revokeExpires(userId, false)
+    }
+
+    static revokeExpires(userId, expiresOnly=true): Promise<void> {
+      const keyOnly = ({ userId, token }) =>
+        ({ userId, token })
+
+      const deleteAll = items =>
+        Model.batchDelete(items.map(keyOnly))
+
+      let query = Model
+        .query('userId')
+        .eq(userId)
+        .all()
+
+      if(expiresOnly) {
+        query = query.filter('exp').lt(nowInSec())
+      }
+
+      return query
+        .exec()
+        .then(deleteAll)
+        .then(returnVoid)
+    }
+  }
 }
 
 const nowInSec = () => Math.floor(Date.now() / 1000)

@@ -2,7 +2,7 @@ import './setup'
 import * as chai from 'chai'
 import * as chaiAsPromised from 'chai-as-promised'
 import { times } from 'underscore'
-import { Post, PostPayload } from '../models/Post'
+import { Model, PostPayload } from '../models/Post'
 import { UserStatus } from '../models/User'
 import {
   // @ts-ignore
@@ -53,7 +53,7 @@ describe('Me', function(){
 
     before(async () => {
       await Promise.all([
-        truncate(Post.Model, ['id']),
+        truncate(Model, ['id']),
       ])
     })
 
@@ -65,7 +65,7 @@ describe('Me', function(){
       PostFields.forEach(f =>
         created.should.have.property(f).to.be.exist)
 
-      const d = <PostPayload>await Post.Model.get({ id: created.id })
+      const d = <PostPayload>await Model.get({ id: created.id })
       d.should.have.property('contents', contents)
       d.should.not.have.property('locOpen')
     })
@@ -89,7 +89,7 @@ describe('Me', function(){
       PostFields.forEach(f =>
         updated.should.have.property(f).to.be.exist)
 
-      const data = <PostPayload>await Post.Model.get({ id: created.id })
+      const data = <PostPayload>await Model.get({ id: created.id })
       data.should.have.property('contents', p.contents)
       data.should.have.property('loc', p.loc)
 
@@ -127,7 +127,7 @@ describe('Me', function(){
 
     before(async () => {
       await Promise.all([
-        truncate(Post.Model, ['id']),
+        truncate(Model, ['id']),
       ])
       created = <PostPayload>await seeding(me, false)
     })
@@ -137,7 +137,7 @@ describe('Me', function(){
       r.body.data.deletePost
         .should.have.property('result', true)
 
-      const post = await Post.Model.get({ id: created.id })
+      const post = await Model.get({ id: created.id })
       post.should.have.property('id', created.id)
       post.should.not.have.property('contents')
     })
@@ -163,7 +163,7 @@ describe('Me', function(){
 
     before(async () => {
       await Promise.all([
-        truncate(Post.Model, ['id']),
+        truncate(Model, ['id']),
       ])
       await seeding(me, false, 10)
     })
@@ -193,7 +193,7 @@ describe('Me', function(){
 
     before(async () => {
       await Promise.all([
-        truncate(Post.Model, ['id']),
+        truncate(Model, ['id']),
       ])
       created = <PostPayload>await seeding(me, false)
     })
@@ -320,6 +320,6 @@ function seeding(
   })
 
   const seeds = times(n, createPost)
-  return Post.Model.batchPut(seeds)
+  return Model.batchPut(seeds)
     .then(() => n === 1 ? seeds[0] : seeds)
 }

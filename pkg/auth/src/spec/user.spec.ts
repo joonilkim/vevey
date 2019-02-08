@@ -2,8 +2,8 @@ import './setup'
 import * as chai from 'chai'
 import * as chaiAsPromised from 'chai-as-promised'
 import * as bcrypt from 'bcrypt'
-import { User, UserStatus } from '../models/User'
-import { Token } from '../models/Token'
+import * as U from '../models/User'
+import * as T from '../models/Token'
 import {
   // @ts-ignore
   print,
@@ -12,6 +12,7 @@ import {
   truncate,
   throwIfError,
 } from './helper'
+const { UserStatus } = U
 
 const saltRound = 8
 
@@ -22,6 +23,8 @@ describe('User', function(){
   this.timeout(10000)
   chai.use(chaiAsPromised);
   chai.should()
+
+  const User = U.init()()
 
   const testUser = {
     email: process.env.TEST_EMAIL || 'success@simulator.amazonses.com',
@@ -244,19 +247,17 @@ function getMe(token?) {
 //// helpers ////
 
 function createUser ({ email, pwd, name }) {
-  return new User({
+  return new U.Model({
     email,
     pwd: bcrypt.hashSync(pwd, saltRound),
     name,
     status: UserStatus.Confirmed,
-  }).model.save()
+  }).save()
 }
 
 function truncateAll() {
   return Promise.all([
-    truncate(User.Model, ['id']),
-    truncate(Token.Model, ['userId', 'token'])
+    truncate(U.Model, ['id']),
+    truncate(T.Model, ['userId', 'token'])
   ])
 }
-
-

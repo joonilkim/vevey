@@ -1,8 +1,9 @@
 import * as assert from 'assert-err'
 import { generate as uuid } from 'short-uuid'
+import { pick, identity, uniq, values, isNumber, isBoolean } from 'underscore'
+import * as DataLoader from 'dataloader'
 import { UpdateOption } from 'dynamoose'
-import { pick, identity, isNumber, isBoolean } from 'underscore'
-import { wrapError, NoPermission } from '@vevey/common'
+import { wrapError, fillEmpties, NoPermission } from '@vevey/common'
 import { dynamoose } from '../connectors/dynamoose'
 
 export interface PostPayload {
@@ -63,131 +64,127 @@ export const PostSchema = new dynamoose.Schema({
   saveUnknown: false,
 })
 
-export class Post {
-  static Model = dynamoose.model('Post', PostSchema)
+export const Model = dynamoose.model('Post', PostSchema)
 
-  model
+const batchGet = (keys: object[]) =>
+  Model
+    .batchGet(uniq(keys, (v) => values(v).join(',')))
+    .then(r => fillEmpties(keys, r))
 
-  constructor(params){
-    this.model = new Post.Model(params)
-  }
-
-  static create(
-    me: { id }, { contents, open }
-  ): Promise<PostPayload> {
-    const loc = Date.now()
-    const m = new Post.Model({
-      id: uuid(),
-      authorId: me.id,
-      loc,
-      locOpen: open === true ? loc: null,
-      contents,
-    })
-
-    return m.save()
-      .then(() => <PostPayload>m)
-  }
-
-  static update(
-    me: { id }, id: string, { contents, loc, open }
-  ): Promise<PostPayload> {
-    const handleConditionFailed = er => {
-      if (er.code === 'ConditionalCheckFailedException')
-        throw wrapError(er, NoPermission)
-      throw er
-    }
-
-    const key = { id }
-    const p = pick({ contents, loc }, identity)
-    const ops = {
-      condition: 'authorId = :authorId',
-      conditionValues: { authorId: me.id },
-      returnValues: 'ALL_NEW',
-    }
-
-    const updateOpen = (post?) => {
-      const needsUpdate = post && isBoolean(open) &&
-        (open && !isOpen(post)) ||
-        (!open && isOpen(post))
-
-      if(!needsUpdate) { return post }
-
-      const p = !open ?
-        { $DELETE: { locOpen: null }} :
-        { locOpen: post.loc }
-      return <Promise<any>>Post.Model
-        .update(key, p, <UpdateOption><any>ops)
-    }
-
-    return <Promise<any>>Post.Model
-      .update(key, p, <UpdateOption><any>ops)
-      .then(updateOpen)
-      .catch(handleConditionFailed)
-  }
-
-  static delete(me: { id }, id: string): Promise<void> {
-    const handleConditionFailed = er => {
-      if (er.code === 'ConditionalCheckFailedException')
-        throw wrapError(er, NoPermission)
-      throw er
-    }
-
-    const key = { id }
-    const p = { contents: null, loc: null }
-    const ops = {
-      condition: 'authorId = :authorId',
-      conditionValues: { authorId: me.id },
-    }
-    return Post.Model
-      .update(key, { $DELETE: p }, <UpdateOption><any>ops)
-      .then(returnNothing)
-      .catch(handleConditionFailed)
-  }
-
-  static all(
-    me: { id }, authorId, { loc, limit }
-  ): Promise<PostPage> {
-    let query = Post.Model
-      .query('authorId')
-      .eq(authorId)
-
-    if(me.id === authorId) {
-      query = query.where('loc').lt(loc)
-    } else {
-      query = query.where('locOpen').lt(loc)
-    }
-
-    return query
-      .filter('contents').not().null()
-      .limit(limit)
-      .descending()
-      .exec()
-      .then(pagination)
-  }
-
-  static get(me: { id }, id: string): Promise<PostPayload> {
-    const filterDeleted = (post?) =>
-      post && post.contents ? post : null
-
-    const shouldHavePerm = (post?) => {
-      if(!post) { return post }
-      assert(
-        isOpen(post) || me.id === post.authorId,
-        NoPermission)
-      return post
-    }
-
-    return Post.Model
-      .get({ id })
-      .then(filterDeleted)
-      .then(shouldHavePerm)
-  }
-
+export const init = () => {
+  return createModel
 }
 
-export const createModel = (options={}) => {
-  Object.entries(options).forEach(([k, v]) => Post[k] = v)
-  return Post
+export type PostModel = ReturnType<typeof createModel>
+
+export function createModel(){
+  const dataloader = new DataLoader(batchGet)
+
+  return {
+    create(me: { id }, { contents, open }): Promise<PostPayload> {
+      const loc = Date.now()
+      const m = new Model({
+        id: uuid(),
+        authorId: me.id,
+        loc,
+        locOpen: open === true ? loc: null,
+        contents,
+      })
+
+      return m.save()
+        .then(() => <PostPayload>m)
+    },
+
+    update(me: { id }, id: string, { contents, loc, open }): Promise<PostPayload> {
+      const handleConditionFailed = er => {
+        if (er.code === 'ConditionalCheckFailedException')
+          throw wrapError(er, NoPermission)
+        throw er
+      }
+
+      const key = { id }
+      const p = pick({ contents, loc }, identity)
+      const ops = {
+        condition: 'authorId = :authorId',
+        conditionValues: { authorId: me.id },
+        returnValues: 'ALL_NEW',
+      }
+
+      const updateOpen = (post?) => {
+        const needsUpdate = post && isBoolean(open) &&
+          (open && !isOpen(post)) ||
+          (!open && isOpen(post))
+
+        if(!needsUpdate) { return post }
+
+        const p = !open ?
+          { $DELETE: { locOpen: null }} :
+          { locOpen: post.loc }
+        return <Promise<any>>Model
+          .update(key, p, <UpdateOption><any>ops)
+      }
+
+      return <Promise<any>>Model
+        .update(key, p, <UpdateOption><any>ops)
+        .then(updateOpen)
+        .catch(handleConditionFailed)
+    },
+
+    delete(me: { id }, id: string): Promise<void> {
+      const handleConditionFailed = er => {
+        if (er.code === 'ConditionalCheckFailedException')
+          throw wrapError(er, NoPermission)
+        throw er
+      }
+
+      const key = { id }
+      const p = { contents: null, loc: null }
+      const ops = {
+        condition: 'authorId = :authorId',
+        conditionValues: { authorId: me.id },
+      }
+      return Model
+        .update(key, { $DELETE: p }, <UpdateOption><any>ops)
+        .then(returnNothing)
+        .catch(handleConditionFailed)
+    },
+
+    all(me: { id }, authorId, { loc, limit }): Promise<PostPage> {
+      let query = Model
+        .query('authorId')
+        .eq(authorId)
+
+      if(me.id === authorId) {
+        query = query.where('loc').lt(loc)
+      } else {
+        query = query.where('locOpen').lt(loc)
+      }
+
+      return query
+        .filter('contents').not().null()
+        .limit(limit)
+        .descending()
+        .exec()
+        .then(pagination)
+    },
+
+    get(me: { id }, id: string): Promise<PostPayload> {
+      const filterDeleted = (post?) =>
+        post && post.contents ? post : null
+
+      const shouldHavePerm = (post?) => {
+        if(!post) { return post }
+        assert(
+          isOpen(post) || me.id === post.authorId,
+          NoPermission)
+        return post
+      }
+
+      return dataloader.load({ id })
+        .then(filterDeleted)
+        .then(shouldHavePerm)
+    }
+  }
 }
 
 const returnNothing = () => null

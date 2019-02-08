@@ -2,7 +2,7 @@ import './setup'
 import * as chai from 'chai'
 import * as chaiAsPromised from 'chai-as-promised'
 import { times } from 'underscore'
-import { Post, PostPayload } from '../models/Post'
+import { Model, PostPayload } from '../models/Post'
 import { UserStatus } from '../models/User'
 import {
   // @ts-ignore
@@ -54,7 +54,7 @@ describe('User', function(){
 
     before(async () => {
       await Promise.all([
-        truncate(Post.Model, ['id']),
+        truncate(Model, ['id']),
       ])
       await seeding(author, true, 10)
     })
@@ -70,7 +70,7 @@ describe('User', function(){
     let created: PostPayload
 
     before(async () => {
-      await truncate(Post.Model, ['id']),
+      await truncate(Model, ['id']),
       created = <any>await seeding(author, true)
     })
 
@@ -147,6 +147,6 @@ function seeding(
   })
 
   const seeds = times(n, createPost)
-  return Post.Model.batchPut(seeds)
+  return Model.batchPut(seeds)
     .then(() => n === 1 ? seeds[0] : seeds)
 }
