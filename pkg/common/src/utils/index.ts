@@ -78,3 +78,17 @@ export const isObject = o => o !== null && typeof o === 'object'
 export const isEmpty = s =>
   isObject(s) ? !Object.keys(s).length : !s
 
+export const fillEmpties = (keys, results) =>
+  keys.map(K => _find(results, K))
+
+function _find(items, K){
+  // Use for loop instead of functions for perf
+  // items.find(item => !entries.find(([k, v]) => item[k] !== v))
+  for(const item of items){
+    for(const k in K){
+      if(item[k] !== K[k]) continue
+    }
+    return item
+  }
+  return null
+}
