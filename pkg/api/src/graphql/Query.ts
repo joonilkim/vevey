@@ -4,38 +4,37 @@ export const schema = `
   type Query {
     ping: String!
 
-    postsByAuthor(
-      authorId: ID!
-      pos: Integer = ${Number.MAX_SAFE_INTEGER}
-      limit: Int! @constraint(min: 1, max: 30)
-    ): PostPagination! @auth
+    me: Me! @auth
 
-    getPost(
-      id: ID!
-    ): Post @auth
-  }
+    author(id: ID!): Author
 
-  type PostPagination {
-    items: [Post!]!
+    post(id: ID!): Post
   }
 `
 
 export const resolvers = {
   Query: {
-    ping: () => 'ok',
-    postsByAuthor,
-    getPost,
+    ping,
+    me,
+    post,
+    author,
   }
 }
 
-function postsByAuthor(
-  _, { authorId, limit, pos }, { me, Post }: Context
-) {
-  return Post.allByAuthor(me, authorId, { limit, pos })
+function ping(){
+  return 'ok'
 }
 
-function getPost(
-  _, { id }, { me, Post }: Context
-) {
+function me(_, {}, { me, User }: Context) {
+  return User.get(me, me.id)
+}
+
+function author(_, { id }, { me, User }: Context) {
+  return User.get(me, id)
+}
+
+function post(_, { id }, { me, Post }: Context) {
   return Post.get(me, id)
 }
+
+

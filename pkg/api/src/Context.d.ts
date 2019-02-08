@@ -1,10 +1,12 @@
 import { Post } from './models/Post'
+import { User } from './models/User'
 
-interface User {
+interface AuthPayload {
   id: string
 }
 
 interface Context {
-  me: User
+  me: AuthPayload
   Post: typeof Post
+  User: User
 }

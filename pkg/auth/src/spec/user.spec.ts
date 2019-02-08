@@ -1,3 +1,4 @@
+import './setup'
 import * as chai from 'chai'
 import * as chaiAsPromised from 'chai-as-promised'
 import * as bcrypt from 'bcrypt'
@@ -10,7 +11,7 @@ import {
   gqlRequest,
   truncate,
   throwIfError,
-} from './helper.spec'
+} from './helper'
 
 const saltRound = 8
 

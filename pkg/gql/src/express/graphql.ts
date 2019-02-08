@@ -31,7 +31,6 @@ export const graphqlHttp = (options: Options) => {
           code: er.code,
           statusCode: er.statusCode,
           message: er.message,
-          extra: er.extra,
         }
       },
       ...options,

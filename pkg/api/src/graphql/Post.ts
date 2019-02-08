@@ -1,13 +1,25 @@
 export const schema = `
   type Post {
     id: ID!
-    authorId: ID!
+    author: Author!
     contents: String!
-    pos: Integer!
+    loc: Integer!
+    locOpen: Integer
     createdAt: Date!
     updatedAt: Date!
+  }
+
+  type PostList {
+    items: [Post!]!
   }
 `
 
 export const resolvers = {
+  Post: {
+    author
+  }
+}
+
+function author({ authorId }, args, { me, User }){
+  return User.get(me, authorId)
 }

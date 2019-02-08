@@ -1,3 +1,4 @@
+import './setup'
 import { delay } from 'Bluebird'
 import * as chai from 'chai'
 import * as chaiAsPromised from 'chai-as-promised'
@@ -11,7 +12,7 @@ import {
   gqlRequest,
   truncate,
   throwIfError,
-} from './helper.spec'
+} from './helper'
 
 const saltRound = 8
 

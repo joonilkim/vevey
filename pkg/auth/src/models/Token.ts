@@ -142,13 +142,13 @@ export class Token {
     const deleteAll = items =>
       Model.batchDelete(items.map(keyOnly))
 
-    const query = Model
+    let query = Model
       .query('userId')
       .eq(userId)
       .all()
 
     if(expiresOnly) {
-      query.filter('exp').lt(nowInSec())
+      query = query.filter('exp').lt(nowInSec())
     }
 
     return query

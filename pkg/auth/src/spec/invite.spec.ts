@@ -1,3 +1,4 @@
+import './setup'
 import * as chai from 'chai'
 import * as chaiAsPromised from 'chai-as-promised'
 import { User } from '../models/User'
@@ -9,7 +10,7 @@ import {
   gqlRequest,
   truncate,
   throwIfError,
-} from './helper.spec'
+} from './helper'
 
 const app = createApp()
 

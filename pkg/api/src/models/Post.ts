@@ -1,20 +1,22 @@
 import * as assert from 'assert-err'
 import { generate as uuid } from 'short-uuid'
 import { UpdateOption } from 'dynamoose'
-import { pickBy, isEmpty, wrapError, NoPermission } from '@vevey/common'
+import { pick, identity, isNumber, isBoolean } from 'underscore'
+import { wrapError, NoPermission } from '@vevey/common'
 import { dynamoose } from '../connectors/dynamoose'
 
-export interface PostResponse {
+export interface PostPayload {
   id?: string
   authorId?: number
   contents?: string
-  pos?: number
+  loc?: number
+  locOpen?: number
   createdAt?: Date
   updatedAt?: Date
 }
 
 export interface PostPage {
-  items: PostResponse[]
+  items: PostPayload[]
 }
 
 export const PostSchema = new dynamoose.Schema({
@@ -25,23 +27,35 @@ export const PostSchema = new dynamoose.Schema({
   authorId: {
     type: String,
     required: true,
-    index: {
-      global: true,
-      rangeKey: 'pos',
-      name: 'byAuthor',
-      project: true,
-      throughput: 1,
-    }
+    index: [
+      {
+        global: true,
+        rangeKey: 'loc',
+        name: 'byAuthor',
+        project: true,
+        throughput: 1,
+      },
+      {
+        global: true,
+        rangeKey: 'locOpen',
+        name: 'openOnly',
+        project: true,
+        throughput: 1,
+      },
+    ]
   },
   contents: {
     type: String,
     default: '',
     trim: true,
   },
-  pos: {
+  loc: {
     type: Number,
     default: Number.MAX_SAFE_INTEGER,
     validate: _ => _ >= 0
+  },
+  locOpen: {
+    type: Number,
   },
 }, {
   throughput: {read: 1, write: 1},
@@ -49,34 +63,34 @@ export const PostSchema = new dynamoose.Schema({
   saveUnknown: false,
 })
 
-export const Model = dynamoose.model('Post', PostSchema)
-
 export class Post {
-  static Model = Model
+  static Model = dynamoose.model('Post', PostSchema)
 
   model
 
   constructor(params){
-    this.model = new Model(params)
+    this.model = new Post.Model(params)
   }
 
   static create(
-    me: { id }, params: { contents }
-  ): Promise<PostResponse> {
-    const m = new Model({
+    me: { id }, { contents, open }
+  ): Promise<PostPayload> {
+    const loc = Date.now()
+    const m = new Post.Model({
       id: uuid(),
-      pos: Date.now(),
       authorId: me.id,
-      ...params,
+      loc,
+      locOpen: open === true ? loc: null,
+      contents,
     })
 
     return m.save()
-      .then(() => <PostResponse>m)
+      .then(() => <PostPayload>m)
   }
 
   static update(
-    me: { id }, id: string, { contents, pos }
-  ): Promise<PostResponse> {
+    me: { id }, id: string, { contents, loc, open }
+  ): Promise<PostPayload> {
     const handleConditionFailed = er => {
       if (er.code === 'ConditionalCheckFailedException')
         throw wrapError(er, NoPermission)
@@ -84,13 +98,30 @@ export class Post {
     }
 
     const key = { id }
-    const p = pickBy({ contents, pos }, v => !isEmpty(v))
+    const p = pick({ contents, loc }, identity)
     const ops = {
       condition: 'authorId = :authorId',
       conditionValues: { authorId: me.id },
       returnValues: 'ALL_NEW',
     }
-    return <Promise<any>>Model.update(key, p, <UpdateOption><any>ops)
+
+    const updateOpen = (post?) => {
+      const needsUpdate = post && isBoolean(open) &&
+        (open && !isOpen(post)) ||
+        (!open && isOpen(post))
+
+      if(!needsUpdate) { return post }
+
+      const p = !open ?
+        { $DELETE: { locOpen: null }} :
+        { locOpen: post.loc }
+      return <Promise<any>>Post.Model
+        .update(key, p, <UpdateOption><any>ops)
+    }
+
+    return <Promise<any>>Post.Model
+      .update(key, p, <UpdateOption><any>ops)
+      .then(updateOpen)
       .catch(handleConditionFailed)
   }
 
@@ -102,24 +133,31 @@ export class Post {
     }
 
     const key = { id }
-    const p = { contents: null, pos: null }
+    const p = { contents: null, loc: null }
     const ops = {
       condition: 'authorId = :authorId',
-      conditionValues: { authorId: me.id},
+      conditionValues: { authorId: me.id },
     }
-    return Model.update(key, { $DELETE: p }, <UpdateOption><any>ops)
+    return Post.Model
+      .update(key, { $DELETE: p }, <UpdateOption><any>ops)
       .then(returnNothing)
       .catch(handleConditionFailed)
   }
 
-  static allByAuthor(
-    me: { id }, authorId: string, { pos, limit }
+  static all(
+    me: { id }, authorId, { loc, limit }
   ): Promise<PostPage> {
-    assert(me.id === authorId, NoPermission)
+    let query = Post.Model
+      .query('authorId')
+      .eq(authorId)
 
-    return Model
-      .query('authorId').eq(authorId)
-      .where('pos').lt(pos)
+    if(me.id === authorId) {
+      query = query.where('loc').lt(loc)
+    } else {
+      query = query.where('locOpen').lt(loc)
+    }
+
+    return query
       .filter('contents').not().null()
       .limit(limit)
       .descending()
@@ -127,16 +165,19 @@ export class Post {
       .then(pagination)
   }
 
-  static get(me: { id }, id: string): Promise<PostResponse> {
-    const filterDeleted = post =>
+  static get(me: { id }, id: string): Promise<PostPayload> {
+    const filterDeleted = (post?) =>
       post && post.contents ? post : null
 
-    const shouldHavePerm = post => {
-      if(post) assert(me.id === post.authorId, NoPermission)
+    const shouldHavePerm = (post?) => {
+      if(!post) { return post }
+      assert(
+        isOpen(post) || me.id === post.authorId,
+        NoPermission)
       return post
     }
 
-    return Model
+    return Post.Model
       .get({ id })
       .then(filterDeleted)
       .then(shouldHavePerm)
@@ -153,9 +194,4 @@ const returnNothing = () => null
 
 const pagination = items => ({ items })
 
-// @ts-ignore
-const parseDynamo = async (Item) => {
-  const m = new Model()
-  await PostSchema.parseDynamo(m, Item)
-  return <PostResponse>m
-}
+const isOpen = ({locOpen}) => isNumber(locOpen)

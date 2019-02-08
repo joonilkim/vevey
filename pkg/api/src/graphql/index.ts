@@ -3,6 +3,8 @@ import { gtypes } from '@vevey/gql'
 import * as Query from './Query'
 import * as Mutation from './Mutation'
 import * as Post from './Post'
+import * as Me from './Me'
+import * as Author from './Author'
 
 export const typeDefs = [
   gtypes.auth.schema,
@@ -12,6 +14,8 @@ export const typeDefs = [
   Query.schema,
   Mutation.schema,
   Post.schema,
+  Me.schema,
+  Author.schema,
 ].join('\n')
 
 export const resolvers = {
@@ -20,6 +24,8 @@ export const resolvers = {
   ...Query.resolvers,
   ...Mutation.resolvers,
   ...Post.resolvers,
+  ...Me.resolvers,
+  ...Author.resolvers,
 }
 
 export const schemaDirectives = {

@@ -1,7 +1,8 @@
+import './setup'
 import { expect } from 'chai'
 import { Context } from 'aws-lambda'
 import { server, handler } from '../index'
-import * as baseEvent from './apigateway-event.spec.json'
+import * as baseEvent from './apigateway-event.json'
 
 const clone = obj => JSON.parse(JSON.stringify(obj))
 

@@ -1,5 +1,6 @@
 import * as _request from 'supertest'
 import * as express from 'express'
+import * as jwt from 'jsonwebtoken'
 import { router } from '../router'
 import { dynamoose } from '../connectors/dynamoose'
 
@@ -29,8 +30,15 @@ export const gqlRequest = (
     .send({ query })
 }
 
+export const makeToken = (payload: { id }) => {
+  if(!payload) { return null }
+
+  const secret = process.env.TOKEN_SECRET
+  return { accessToken: jwt.sign(payload, secret) }
+}
+
 export const print = data => {
-  console.info(data)
+  console.dir(data, { depth: null })
   return data
 }
 
@@ -65,5 +73,54 @@ export const dropTables = (models: Array<{}>) => {
     models
       .map(m => m['$__']['name'])
       .map(drop))
+}
+
+export const initUserResource = async () => {
+  const db = dynamoose.ddb()
+  const TableName = process.env.USER_RESOURCE ||
+    (process.env.DYNAMODB_PREFIX || '') + 'User'
+
+  const hasTable = () =>
+    db.describeTable({ TableName })
+      .promise()
+      .then(() => true)
+      .catch(() => false)
+
+  const createUserTable = () =>
+    db.createTable({
+      TableName,
+      AttributeDefinitions: [
+        { AttributeName: 'id', AttributeType: 'S' },
+      ],
+      KeySchema: [
+        { AttributeName: 'id', KeyType: 'HASH' },
+      ],
+      ProvisionedThroughput: {
+        ReadCapacityUnits: 1,
+        WriteCapacityUnits: 1,
+      },
+    }).promise()
+
+  return hasTable()
+    .then(r => r || <any>createUserTable())
+}
+
+export const createUsers = (users: Array<{ id, name, email}>) => {
+  const db = dynamoose.documentClient()
+  const TableName = process.env.USER_RESOURCE ||
+    (process.env.DYNAMODB_PREFIX || '') + 'User'
+
+  return db.batchWrite({
+    RequestItems: {
+      [TableName]: users.map(u => ({
+        PutRequest: {
+          Item: Object.entries(u).reduce((y, [k,v]) => ({
+            [k]: v,
+            ...y,
+          }), {})
+        }
+      }))
+    },
+  }).promise()
 }
 

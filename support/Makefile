@@ -1,5 +1,9 @@
 root = ../..
 
+include ${root}/.env
+include .env
+export
+
 self    = $(shell basename $(shell pwd))
 mocha   = ${root}/node_modules/.bin/mocha
 tsc     = ${root}/node_modules/.bin/tsc
@@ -8,11 +12,12 @@ nodemon = ${root}/node_modules/.bin/nodemon
 test:
 	NODE_ENV=test \
 	TS_NODE_FILES=true \
-	${mocha} --recursive \
+	${mocha} \
 		-r ts-node/register \
-		"src/**/*.spec.{ts,tsx}" --colors
+		"src/**/*.spec.ts" --colors
 
 dev:
+	TS_NODE_FILES=true \
 	${nodemon} \
 		--watch src/**/*.ts \
 		--ignore src/**/*.spec.ts \
