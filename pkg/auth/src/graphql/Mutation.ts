@@ -79,9 +79,10 @@ export const resolvers = {
 function inviteMe(
   _,
   { email },
-  { me, User }: Context,
+  { me, User, Mailer }: Context,
 ) {
   return User.invite({ email })
+    .then(code => Mailer.sendInvitation(email, code))
     .then(returnSuccess)
 }
 
@@ -138,16 +139,17 @@ function changePassword(
 function forgotPassword(
   _,
   { email },
-  { me, User, Token }: Context,
+  { me, User, Token, Mailer }: Context,
 ) {
   return User.forgotPassword({ email })
+    .then(code => Mailer.sendConfirmCode(email, code))
     .then(returnSuccess)
 }
 
 function confirmForgotPassword(
   _,
   { userId, code, newPwd },
-  { me, User, Token }: Context,
+  { me, User, Token, Mailer }: Context,
 ) {
   return User.confirmForgotPassword({ userId, code, newPwd })
     .then(returnSuccess)
